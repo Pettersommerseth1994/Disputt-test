@@ -132,6 +132,8 @@
   --shadow-1: 0 3px 0 var(--edge);
   --shadow-2: 0 6px 0 var(--edge);
   --shadow-3: 0 10px 0 var(--edge);
+  /* An alpha mask (only its opacity counts): the fade above the bar at the bottom of a screen (.dock::before in base.css). */
+  --fade-mask: linear-gradient(to top, #000 0%, rgb(0 0 0 / 0.55) 45%, transparent 100%);
 
   /* ---- Motion ----------------------------------------------------------- */
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);

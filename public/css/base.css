@@ -137,15 +137,19 @@ button { touch-action: manipulation; }
   padding: var(--s-4) var(--page-x) var(--page-bottom);
   background: var(--tex-grain), var(--dock-tex), var(--page-bg);
 }
-/* A soft edge: what scrolls up to the bar fades into the page colour instead of being cut off by a straight line. */
+/* A soft edge: what scrolls up to the bar fades into the bar instead of being cut off by a straight line. The fade has the bar's own
+   grain and crayon and is faded out with a mask. (A plain colour gradient was a smooth strip across the textured page, with a seam
+   where the bar's texture began.) */
 .dock::before {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   bottom: 100%;
-  height: 1.4rem;
-  background: linear-gradient(to top, var(--page-bg), transparent);
+  height: 2rem;
+  background: var(--tex-grain), var(--dock-tex), var(--page-bg);
+  -webkit-mask-image: var(--fade-mask);
+  mask-image: var(--fade-mask);
   pointer-events: none;
 }
 .dock > * + * { margin-top: var(--s-3); }
