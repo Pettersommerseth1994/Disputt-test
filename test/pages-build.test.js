@@ -223,6 +223,60 @@ describe('payments in the build', () => {
   });
 });
 
+describe('the payment demo in the build', () => {
+  const KEY = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE' + 'A'.repeat(86) + '==';
+
+  it('is not in an ordinary build', () => {
+    assert.ok(!fs.existsSync(path.join(out, 'demo')), 'no demo folder');
+    assert.doesNotMatch(fs.readFileSync(path.join(out, 'config.js'), 'utf8'), /demo/);
+  });
+
+  it('is off unless asked for, and then needs no payment server', async () => {
+    assert.equal((await buildConfig({ mode: 'p2p' })).payments, null);
+    for (const on of [true, '1', 'true', 'TRUE', 'yes', 'on']) {
+      assert.deepEqual((await buildConfig({ mode: 'p2p', paymentsDemo: on })).payments, { demo: true, methods: ['applepay'], freeRounds: 2 }, `on for ${JSON.stringify(on)}`);
+    }
+    for (const off of ['0', 'false', 'no', 'off', undefined]) {
+      assert.equal((await buildConfig({ mode: 'p2p', paymentsDemo: off })).payments, null, `off for ${JSON.stringify(off)}`);
+    }
+    const more = await buildConfig({ mode: 'p2p', paymentsDemo: '1', paymentsMethods: 'vipps,applepay', freeRounds: '3' });
+    assert.deepEqual(more.payments, { demo: true, methods: ['vipps', 'applepay'], freeRounds: 3 });
+  });
+
+  it('does not go with a real payment server, a Disputt server, or values that do not belong', async () => {
+    await assert.rejects(buildConfig({ mode: 'p2p', paymentsDemo: '1', paymentsUrl: 'https://pay.example.com', paymentsKey: KEY }), /cannot be combined/);
+    await assert.rejects(buildConfig({ mode: 'p2p', paymentsDemo: '1', paymentsKey: KEY }), /cannot be combined/);
+    await assert.rejects(buildConfig({ mode: 'server', serverUrl: 'wss://disputt.example/ws', paymentsDemo: '1' }), /peer-to-peer/);
+    await assert.rejects(buildConfig({ mode: 'p2p', paymentsDemo: 'maybe' }), /payments demo/);
+    await assert.rejects(buildConfig({ mode: 'p2p', paymentsDemo: '1', paymentsMethods: 'bitcoin' }), Error);
+    await assert.rejects(buildConfig({ mode: 'p2p', paymentsDemo: '1', freeRounds: '0' }), Error);
+  });
+
+  it('can come from the environment, and every module of the demo finds what it imports', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'disputt-demo-env-'));
+    try {
+      await build(['--out', dir, '--base', '/Disputt-test/'], { DISPUTT_PAYMENTS_DEMO: '1', DISPUTT_PAYMENTS_METHODS: 'vipps,applepay' });
+      assert.match(fs.readFileSync(path.join(dir, 'config.js'), 'utf8'), /"demo": true/);
+      const importRe = /(?:from\s+|import\s*\(\s*|import\s+)['"](\.{1,2}\/[^'"]+)['"]/g;
+      let seen = 0;
+      for (const f of files(path.join(dir, 'demo'), (p) => /\.js$/.test(p))) {
+        for (const m of fs.readFileSync(f, 'utf8').matchAll(importRe)) {
+          seen++;
+          assert.ok(fs.existsSync(path.resolve(path.dirname(f), m[1])), `${path.relative(dir, f)} imports ${m[1]}`);
+        }
+      }
+      assert.ok(seen >= 4, `looked at ${seen} imports of the demo`);
+      // (a repository variable that is not set reaches the build as an empty text: that is off)
+      await build(['--out', dir, '--base', '/Disputt-test/'], { DISPUTT_PAYMENTS_DEMO: '' });
+      assert.ok(!fs.existsSync(path.join(dir, 'demo')), 'an empty variable is not a demo');
+      // the page loads the demo through a path that is worked out when it runs, so it is looked for here
+      assert.match(fs.readFileSync(path.join(dir, 'js', 'main.js'), 'utf8'), /new URL\('\.\.\/demo\/demo\.js', import\.meta\.url\)/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('build settings from repository variables are checked, not trusted', () => {
   const attempt = (argv, env = {}) => build(['--out', path.join(os.tmpdir(), `disputt-bad-${process.pid}`), ...argv], env);
 

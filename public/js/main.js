@@ -16,9 +16,19 @@ const debug = new URLSearchParams(location.search).get('debug'); // QA only: ?de
 if (debug !== 'offline') connect();
 
 // Payments (off unless the build switched them on): check the pass on this phone, and take care of a host who is back from Stripe.
-initPayments(config.payments)
-  .then(() => handlePaymentReturn())
-  .catch(() => {});
+const startPayments = (cfg) =>
+  initPayments(cfg)
+    .then(() => handlePaymentReturn())
+    .catch(() => {});
+if (config.payments?.demo) {
+  // A demo build (a test copy, docs/BETALING.md "Demo uten Stripe") has no payment server: the page runs a pretend one (demo/demo.js).
+  import(new URL('../demo/demo.js', import.meta.url).href)
+    .then((demo) => demo.startDemo(config.payments))
+    .catch(() => null)
+    .then(startPayments);
+} else {
+  startPayments(config.payments);
+}
 
 // Phones sleep and drop sockets: come back to life as soon as the page is visible or online again.
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && reconnectNow());

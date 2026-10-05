@@ -60,7 +60,7 @@ Terminalen skriver ut to adresser. Åpne **adressen merket «På mobilen (Wi‑F
 
 ## Betaling (av som standard)
 
-Spillet er gratis. Koden kan også ta betalt, men det er **slått av** helt til to variabler settes på GitHub: tre pakker bare verten kjøper (**En kveld** 149 kr, **For ett år** 399 kr, **Livstid** 499 kr), en betalingsmur etter to gratis runder, betaling med **Vipps eller Apple Pay** hos Stripe, ingen innlogging (en kode fra kvitteringen gir tilgangen tilbake på en ny telefon). Betalingsserveren er én Cloudflare Worker ([`payments/worker.js`](payments/worker.js)) som ikke lagrer noe. **Oppsettet, steg for steg: [docs/BETALING.md](docs/BETALING.md).**
+Spillet er gratis. Koden kan også ta betalt, men det er **slått av** helt til to variabler settes på GitHub: tre pakker bare verten kjøper (**En kveld** 149 kr, **For ett år** 399 kr, **Livstid** 499 kr), en betalingsmur etter to gratis runder, betaling med **Vipps eller Apple Pay** hos Stripe, ingen innlogging (en kode fra kvitteringen gir tilgangen tilbake på en ny telefon). Betalingsserveren er én Cloudflare Worker ([`payments/worker.js`](payments/worker.js)) som ikke lagrer noe. **Oppsettet, steg for steg: [docs/BETALING.md](docs/BETALING.md).** En test-kopi kan også kjøre en demo av betalingen uten Stripe (`DISPUTT_PAYMENTS_DEMO`, del 9.3).
 
 ## Designsystem
 

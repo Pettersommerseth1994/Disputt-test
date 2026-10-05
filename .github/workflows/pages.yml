@@ -6,6 +6,7 @@
 #   DISPUTT_PEER_HOST / DISPUTT_PEER_PORT / DISPUTT_PEER_PATH / DISPUTT_PEER_SECURE   a self-hosted PeerJS server.
 #   DISPUTT_PAYMENTS_URL + DISPUTT_PAYMENTS_KEY   switch payments on: the payment server's address and its public key (docs/BETALING.md).
 #   DISPUTT_PAYMENTS_METHODS (vipps,applepay), DISPUTT_FREE_ROUNDS (2), DISPUTT_TERMS_URL, DISPUTT_PRIVACY_URL   optional.
+#   DISPUTT_PAYMENTS_DEMO (1)   a test copy only: payments with a pretend Stripe that lives in the page (docs/BETALING.md, "Demo uten Stripe").
 name: Pages
 
 on:
@@ -54,6 +55,7 @@ jobs:
           DISPUTT_PAYMENTS_URL: ${{ vars.DISPUTT_PAYMENTS_URL }}
           DISPUTT_PAYMENTS_KEY: ${{ vars.DISPUTT_PAYMENTS_KEY }}
           DISPUTT_PAYMENTS_METHODS: ${{ vars.DISPUTT_PAYMENTS_METHODS }}
+          DISPUTT_PAYMENTS_DEMO: ${{ vars.DISPUTT_PAYMENTS_DEMO }}
           DISPUTT_FREE_ROUNDS: ${{ vars.DISPUTT_FREE_ROUNDS }}
           DISPUTT_TERMS_URL: ${{ vars.DISPUTT_TERMS_URL }}
           DISPUTT_PRIVACY_URL: ${{ vars.DISPUTT_PRIVACY_URL }}

@@ -318,7 +318,7 @@ Appen slår betaling på når byggingen får to variabler: adressen til betaling
 
 ### 9.1 Test-kopi (laget)
 
-Test-kopien er laget: <https://github.com/Pettersommerseth1994/Disputt-test> (offentlig, Pages på). Den ligger på `https://pettersommerseth1994.github.io/Disputt-test/`, har samme kode som hovedrepoet, og betaling er av til variablene under er satt. Endres koden i hovedrepoet, legger jeg endringen over i test-kopien også.
+Test-kopien er laget: <https://github.com/Pettersommerseth1994/Disputt-test> (offentlig, Pages på). Den ligger på `https://pettersommerseth1994.github.io/Disputt-test/`, har samme kode som hovedrepoet, og betaling er av til variablene under er satt. (Vil du prøve betalingen før Stripe er klart, se [9.3](#93-demo-uten-stripe-bare-i-test-kopien).) Endres koden i hovedrepoet, legger jeg endringen over i test-kopien også.
 
 1. - [ ] Ha to verdier klare når test-Workeren er laget ([del 8](#8-betalingsserveren-cloudflare-worker)): Worker-adressen (`https://disputt-pay-test.<ditt-navn>.workers.dev`, uten noe på slutten) og innholdet i `offentlig-nokkel.txt`. Ingen av dem er hemmelige.
 2. - [ ] **Send dem til meg**, og si om Vipps er på, så setter jeg variablene i test-kopien og kjører bygget. Vil du heller gjøre det selv: <https://github.com/Pettersommerseth1994/Disputt-test/settings/variables/actions> → *New repository variable*:
@@ -340,6 +340,16 @@ Test-kopien er laget: <https://github.com/Pettersommerseth1994/Disputt-test> (of
 ### 9.2 Direkte på hovedsiden (bare hvis ingen andre spiller)
 
 Samme variabler i **hovedrepoet** og `SITE_URL` = hovedsidens adresse. Alle som åpner siden får betalingen. Slett de to variablene (`DISPUTT_PAYMENTS_URL`, `DISPUTT_PAYMENTS_KEY`) og kjør Pages på nytt for å slå den av igjen.
+
+### 9.3 Demo uten Stripe (bare i test-kopien)
+
+Vil du prøve betalingen og «Logg inn» før Stripe og Workeren er klare, kan test-kopien kjøre en **demo**. Siden har da en betalingsserver og en falsk Stripe-side inni seg: det er den ekte betalingskoden (`payments/worker.js`) som kjører, bak den samme falske Stripe som testene bruker, og det som skjer huskes i nettleseren. Ingen penger flyttes, og ingenting forlater nettleseren.
+
+- **Slå på:** i test-kopien (<https://github.com/Pettersommerseth1994/Disputt-test/settings/variables/actions>): `DISPUTT_PAYMENTS_DEMO` = `1` og `DISPUTT_PAYMENTS_METHODS` = `vipps,applepay`, og kjør *Actions → Pages → Run workflow*. **Aldri i hovedrepoet**: i en demo kan hvem som helst «betale» gratis. Siden har en gul «DEMO»-merkelapp øverst, og betalingssiden sier at den ikke er Stripe.
+- **Slå av:** slett variabelen og kjør Pages på nytt. For å bruke den ekte test-Workeren i stedet, sett `DISPUTT_PAYMENTS_URL` og `DISPUTT_PAYMENTS_KEY` (del 9.1) og slett demo-variabelen først: byggingen nekter å kombinere dem.
+- **Slik prøver du:** forsiden → **Allerede kunde? Logg inn** → **Har du ikke kjøpt ennå? Se pakkene** → velg pakke → **Betal med Vipps** (eller **Apple Pay**). Du kommer til en falsk betalingsside: huk av boksen om vilkårene, trykk **Betal** (eller **Avbryt**), og du er tilbake i spillet med «Takk!» og koden. Prøv så **Min tilgang**, fjern tilgangen, og **Logg inn** med koden. I et spill kommer pakkene etter runde 2 (det trengs tre telefoner), og de andre ser «Verten betaler».
+- **Det demoen ikke viser:** Stripes ekte side, Vipps-appen og Apple Pays knapp, kvitteringene på e-post, og at koden virker på en annen telefon. «Serveren» er nettleseren, så koden virker bare der du betalte.
+- **Teknikk:** `payments/demo/` (`demo.js`, `state.js`, `checkout.html`, `checkout.js`) kopieres til `demo/` i byggingen, sammen med `payments/worker.js` og `tools/qa/fakestripe.mjs`. Siden laster demoen bare når `config.js` sier `demo: true`. `npm run qa:demo` prøver hele forløpet i en ekte nettleser, og `node tools/qa/demoflow.mjs --url=https://…` prøver en publisert demo.
 
 ## 10. Test alt
 
@@ -450,6 +460,7 @@ npm run play:pay               # hele kvelden i en ekte nettleser, med betaling 
 npm run play:pay-slow          # det samme, med verten borte i 75 sekunder
 npm run qa:fit                 # pakkene må vises uten å rulle på 390×664 og de andre størrelsene
 npm run qa:overlap             # ingen tekst oppå annen tekst, ingenting kuttet, heller ikke på betalingsskjermene
+npm run qa:demo                # demoen (test-kopien uten Stripe) i en ekte nettleser: pakker, falsk betalingsside, «Takk!», «Logg inn»
 npm run shots -- --docs        # nye skjermbilder til stilguiden og denne filen
 ```
 

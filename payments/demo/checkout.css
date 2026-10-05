@@ -1,0 +1,18 @@
+/* The pretend payment page of the demo (payments/demo/checkout.js): plain and light, like a payment page, and clearly not Stripe. */
+* { box-sizing: border-box; }
+html { background: #f6f7f9; color: #1a1f36; font: 17px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+body { margin: 0; min-height: 100vh; }
+.ribbon { margin: 0; padding: 8px 16px; background: #fae025; color: #3a2012; font-weight: 700; font-size: 14px; text-align: center; }
+main { max-width: 30rem; margin: 0 auto; padding: 24px 16px calc(32px + env(safe-area-inset-bottom)); }
+h1 { margin: 0 0 4px; font-size: 2.4rem; line-height: 1.1; }
+.what { margin: 0 0 4px; font-weight: 600; }
+.methods { margin: 0 0 20px; color: #596075; }
+.note { margin: 0 0 20px; padding: 12px 14px; border-radius: 10px; background: #fff; box-shadow: 0 1px 3px rgb(26 31 54 / 0.15); font-size: 15px; }
+.note p { margin: 0 0 10px; }
+.note p:last-child { margin: 0; }
+.terms { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 20px; font-size: 15px; }
+.terms input { flex: none; width: 24px; height: 24px; margin: 1px 0 0; }
+button { display: block; width: 100%; min-height: 52px; border: 0; border-radius: 10px; background: #533afd; color: #fff; font: inherit; font-weight: 700; }
+button:disabled { background: #b9b6e6; }
+a { color: #533afd; }
+.cancel { margin: 18px 0 0; text-align: center; }

@@ -33,12 +33,12 @@ const freePort = () =>
  * `prefix` ('/Disputt/') serves the site below that path and nothing outside it, the way GitHub Pages does for a
  * project site, so mistakes like a link to "/assets/…" instead of "assets/…" show up in a browser test.
  */
-export async function startP2PSite({ out = 'tmp/dist-p2p', prefix = '', payments = null } = {}) {
+export async function startP2PSite({ out = 'tmp/dist-p2p', prefix = '', payments = null, paymentsDemo = false } = {}) {
   const { PeerServer } = await import('peer');
   const peerPort = await freePort();
   const peerServer = PeerServer({ port: peerPort, path: '/peerjs', allow_discovery: false });
   const dist = path.resolve(ROOT, out);
-  await build(['--out', dist, ...(prefix ? ['--base', prefix] : []), '--mode', 'p2p', '--peer-host', '127.0.0.1', '--peer-port', String(peerPort), '--peer-path', '/peerjs', '--peer-secure', '0', '--timings', JSON.stringify(FAST), ...(payments ? ['--payments-url', payments.url, '--payments-key', payments.key, '--payments-methods', payments.methods ?? 'vipps,applepay'] : [])]);
+  await build(['--out', dist, ...(prefix ? ['--base', prefix] : []), '--mode', 'p2p', '--peer-host', '127.0.0.1', '--peer-port', String(peerPort), '--peer-path', '/peerjs', '--peer-secure', '0', '--timings', JSON.stringify(FAST), ...(payments ? ['--payments-url', payments.url, '--payments-key', payments.key, '--payments-methods', payments.methods ?? 'vipps,applepay'] : []), ...(paymentsDemo ? ['--payments-demo', '--payments-methods', 'vipps,applepay'] : [])]);
   const statics = createStaticHandler({ publicDir: dist, sharedDir: path.join(dist, 'shared'), sharedExtensions: ['.mjs', '.js'] });
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://x');

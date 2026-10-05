@@ -6,11 +6,15 @@
 //                              [--ice-servers '<json array>'] [--timings '<json object>'] [--no-csp]
 //                              [--payments-url https://pay.example.workers.dev --payments-key <base64> [--payments-methods vipps,applepay]
 //                               [--free-rounds 2] [--terms-url https://…] [--privacy-url https://…]]
+//                              [--payments-demo [--payments-methods vipps,applepay] [--free-rounds 2]]   (no payment server: see below)
 //
 // The same settings can come from the environment (handy in CI): DISPUTT_MODE, DISPUTT_SERVER_URL, DISPUTT_PEER_HOST,
 // DISPUTT_PEER_PORT, DISPUTT_PEER_PATH, DISPUTT_PEER_SECURE, DISPUTT_ICE_SERVERS, and for payments (docs/BETALING.md)
 // DISPUTT_PAYMENTS_URL, DISPUTT_PAYMENTS_KEY, DISPUTT_PAYMENTS_METHODS, DISPUTT_FREE_ROUNDS, DISPUTT_TERMS_URL, DISPUTT_PRIVACY_URL.
 // Payments are off unless both the URL and the key are given.
+// DISPUTT_PAYMENTS_DEMO (1) is the other way to switch them on, for a test copy and never for the real site: the page then has a pretend
+// payment server and a pretend Stripe of its own (payments/demo/), so that payments and "Logg inn" can be tried without a Stripe account.
+// It cannot be combined with a real payment server.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -42,6 +46,7 @@ function options(argv, env) {
     paymentsUrl: pick('payments-url', 'DISPUTT_PAYMENTS_URL'),
     paymentsKey: pick('payments-key', 'DISPUTT_PAYMENTS_KEY'),
     paymentsMethods: pick('payments-methods', 'DISPUTT_PAYMENTS_METHODS'),
+    paymentsDemo: pick('payments-demo', 'DISPUTT_PAYMENTS_DEMO'),
     freeRounds: pick('free-rounds', 'DISPUTT_FREE_ROUNDS'),
     termsUrl: pick('terms-url', 'DISPUTT_TERMS_URL'),
     privacyUrl: pick('privacy-url', 'DISPUTT_PRIVACY_URL'),
@@ -70,6 +75,9 @@ function check(what, value, ok) {
   }
 }
 const escapeAttr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** The payment demo is on for --payments-demo (no value) and for DISPUTT_PAYMENTS_DEMO=1/true/yes/on. */
+const demoOn = (value) => value === true || ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase());
 
 export async function buildConfig(opts) {
   check('peer host (--peer-host / DISPUTT_PEER_HOST)', opts.peerHost, (v) => HOST.test(v));
@@ -101,6 +109,9 @@ export async function buildConfig(opts) {
   check('free rounds (--free-rounds / DISPUTT_FREE_ROUNDS, 1 to 99: the first round is always free)', opts.freeRounds, (v) => /^[1-9]\d?$/.test(v));
   check('terms URL (--terms-url / DISPUTT_TERMS_URL)', opts.termsUrl, (v) => httpsUrl(v, { path: true }) && v.startsWith('https:'));
   check('privacy URL (--privacy-url / DISPUTT_PRIVACY_URL)', opts.privacyUrl, (v) => httpsUrl(v, { path: true }) && v.startsWith('https:'));
+  check('payments demo (--payments-demo / DISPUTT_PAYMENTS_DEMO)', opts.paymentsDemo, (v) => /^(true|1|yes|on|false|0|no|off)$/i.test(v));
+  const demo = demoOn(opts.paymentsDemo);
+  if (demo && (opts.paymentsUrl || opts.paymentsKey)) throw new Error('The payments demo has a payment server of its own: it cannot be combined with --payments-url and --payments-key');
   if (Boolean(opts.paymentsUrl) !== Boolean(opts.paymentsKey)) throw new Error('Payments need both --payments-url and --payments-key (or neither)');
   const defaults = (await import(pathToFileURL(path.join(ROOT, 'public', 'config.js')).href)).default;
   const config = { ...defaults, mode: opts.mode === 'server' ? 'server' : 'p2p', serverUrl: opts.serverUrl || null, peer: { ...defaults.peer } };
@@ -118,10 +129,10 @@ export async function buildConfig(opts) {
     config.iceServers = parsed;
   }
   if (opts.timings) config.timings = JSON.parse(opts.timings);
-  if (opts.paymentsUrl && opts.paymentsKey) {
+  if ((opts.paymentsUrl && opts.paymentsKey) || demo) {
     config.payments = {
-      apiUrl: new URL(opts.paymentsUrl).origin,
-      publicKey: opts.paymentsKey,
+      // (a demo has no server and no key to give: the page makes its own, see payments/demo/demo.js)
+      ...(demo ? { demo: true } : { apiUrl: new URL(opts.paymentsUrl).origin, publicKey: opts.paymentsKey }),
       methods: opts.paymentsMethods ? [...new Set(opts.paymentsMethods.split(','))] : ['applepay'],
       freeRounds: opts.freeRounds === undefined ? 2 : Number(opts.freeRounds),
       ...(opts.termsUrl ? { termsUrl: opts.termsUrl } : {}),
@@ -184,6 +195,13 @@ export async function build(argv = [], env = process.env) {
   copyDir(path.join(ROOT, 'public'), out);
   // the engine and roster are shared between the Node server and the browser (the p2p host runs the engine in the page)
   copyDir(path.join(ROOT, 'shared'), path.join(out, 'shared'), (name) => /\.m?js$/.test(name));
+  if (config.payments?.demo) {
+    // the real payment server and the pretend Stripe of the tests, run by the page itself (payments/demo/demo.js)
+    const demo = path.join(out, 'demo');
+    copyDir(path.join(ROOT, 'payments', 'demo'), demo);
+    fs.copyFileSync(path.join(ROOT, 'payments', 'worker.js'), path.join(demo, 'worker.js'));
+    fs.copyFileSync(path.join(ROOT, 'tools', 'qa', 'fakestripe.mjs'), path.join(demo, 'fakestripe.js'));
+  }
 
   fs.writeFileSync(
     path.join(out, 'config.js'),
