@@ -496,14 +496,15 @@
 .sheet__close { flex: none; }
 
 /* ---- Toast & connection banner ------------------------------------------------ */
-/* The toast sits in the middle of the screen. It is centred with inset and auto margins, not with a transform: the `rise` animation
-   sets `transform` itself, and with fill-mode `both` its last keyframe replaces a `translateX(-50%)`, which once left every toast
-   starting at the middle of the screen and running off the right edge. */
+/* The toast sits at the top of the screen, in the middle of its width, and slides down into place. It is centred with auto margins,
+   not with a transform: the animation sets `transform` itself, and with fill-mode `both` its last keyframe replaces a
+   `translateX(-50%)`, which once left every toast starting at the middle of the screen and running off the right edge. */
 .toast {
   position: fixed;
-  inset: 0;
-  margin: auto;
-  height: fit-content;
+  top: max(0.8rem, env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   z-index: 90;
   width: min(calc(100% - 2rem), 26rem);
   padding: 0.8rem 1.1rem;
@@ -514,7 +515,7 @@
   background: var(--tex-grain), var(--yellow);
   box-shadow: var(--shadow-2);
   pointer-events: none; /* (it is only a message: a tap goes through to what is under it) */
-  animation: rise 0.35s var(--ease-bounce) both;
+  animation: drop 0.4s var(--ease-bounce) both;
 }
 .banner {
   position: sticky;

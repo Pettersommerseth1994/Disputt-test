@@ -108,7 +108,7 @@ npm run play:pay-slow  # det samme, men verten er borte i 75 s mens han betaler:
 npm run play:pay-demo  # det samme mot demoen av betalingen (en test-kopi uten Stripe, docs/BETALING.md del 9.3)
 npm run shots          # skjermbilde av hver skjerm i mobilstørrelse -> tmp/shots/ (VIEWPORT=390x664 for en nettleser med verktøylinjer)
 npm run qa:fit         # får skjermene plass uten scrolling på de synlige skjermstørrelsene (390×664, 375×553 …)?
-npm run qa:toast       # toastene («Koden er kopiert») står hele og midt på skjermen på alle skjermstørrelser og slipper gjennom trykk (med egen selvtest)
+npm run qa:toast       # toastene («Koden er kopiert») står hele øverst på skjermen, midt på bredden, glir ned ovenfra og slipper gjennom trykk, på alle skjermstørrelser (med egen selvtest)
 npm run qa:overlap     # alle skjermer, også med ti spillere, de bredeste navnene og 125 % større tekst: ingen tekst oppå annen tekst eller skåret av, bunnlinjer ugjennomsiktige, bare linjer med en knapp frosset
 npm run pages:preview  # bygg og vis GitHub Pages-versjonen lokalt (http://localhost:8080)
 ```

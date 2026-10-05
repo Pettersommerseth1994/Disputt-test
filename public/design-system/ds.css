@@ -79,7 +79,7 @@ pre.ds-code { margin: 0; padding: 1rem 1.2rem; overflow-x: auto; border-radius: 
 .ds-sheet-preview .sheet { position: static; animation: none; width: 100%; max-height: none; border-radius: var(--r-card); box-shadow: var(--shadow-2); }
 .ds-sheet-preview .sheet-backdrop { position: static; animation: none; background: none; display: block; }
 .ds-banner-preview .banner { position: static; margin: 0; border-radius: var(--r-input); }
-.ds-toast-preview .toast { position: static; margin: 0; height: auto; animation: none; width: 100%; }
+.ds-toast-preview .toast { position: static; margin: 0; animation: none; width: 100%; }
 
 /* screens gallery */
 .ds-screens { display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr)); gap: 1.4rem 1rem; }
