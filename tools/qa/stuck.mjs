@@ -44,7 +44,7 @@ try {
 
   // "Avbryt" leaves the join screen for good
   await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.innerText.includes('Avbryt')).click());
-  await page.waitForFunction(() => /Diskuter\s+og\s+vinn/.test(document.body.innerText), { timeout: 5000 });
+  await page.waitForFunction(() => /Diskuter,?\s+manipuler\s+og\s+vinn/.test(document.body.innerText), { timeout: 5000 });
   assert.doesNotMatch(await text(), /Får ikke kontakt ennå/);
   console.log('STUCK-GUEST HINT: OK');
 } catch (err) {

@@ -162,7 +162,7 @@ try {
   // ------------------------------------------------------------ lobby
   const host = await newPhone(NAMES[0], { wakeLock: 'denied' }); // the host's phone refuses to stay awake
   await host.page.goto(`${base}/`);
-  await waitText(host, /Diskuter\s+og\s+vinn/);
+  await waitText(host, /Diskuter,?\s+manipuler\s+og\s+vinn/);
   if (PAY) await checkHome({ waitText, bodyText }, host);
   await shot(host, '01-home');
   await clickButton(host, 'Opprett spill');
@@ -267,7 +267,7 @@ try {
     await waitText(leaver, /Trykk igjen for å forlate spillet/);
     assert.match(await bodyText(host), new RegExp(NAMES[PLAYERS]), 'one tap does not make anybody leave');
     await clickButton(leaver, 'Trykk igjen for å forlate spillet');
-    await waitText(leaver, /Diskuter\s+og\s+vinn/);
+    await waitText(leaver, /Diskuter,?\s+manipuler\s+og\s+vinn/);
     await waitText(host, new RegExp(`Spillere\\s+${PLAYERS}/10`));
     log('the gear menu works: QR code, change profile, and leaving (two taps)');
 
@@ -281,7 +281,7 @@ try {
     await waitText(leaver2, /Tilbake til hjemskjermen\?/);
     assert.match(await bodyText(leaver2), /Du forlater spillet/);
     await clickButton(leaver2, 'Forlat spillet');
-    await waitText(leaver2, /Diskuter\s+og\s+vinn/);
+    await waitText(leaver2, /Diskuter,?\s+manipuler\s+og\s+vinn/);
     await waitText(host, new RegExp(`Spillere\\s+${PLAYERS}/10`));
     log('the logo asks first, and a guest who says yes is back on the start screen');
   }
@@ -582,7 +582,7 @@ try {
   await clickLabel(host, 'Til hjemskjermen');
   await waitText(host, /Tilbake til hjemskjermen\?/);
   await clickButton(host, P2P ? 'Avslutt spillet' : 'Forlat spillet');
-  await waitText(host, /Diskuter\s+og\s+vinn/);
+  await waitText(host, /Diskuter,?\s+manipuler\s+og\s+vinn/);
   if (P2P) for (const p of others) await waitText(p, /Spillet er avsluttet/, 15000 * SLOW);
   log(P2P ? 'the host chose "end the game" behind the logo: everybody else is told it is over' : 'the host left through the logo');
   assert.deepEqual(problems, [], 'no page errors and nothing blocked by the Content-Security-Policy');

@@ -15,7 +15,10 @@ const viewports = (process.argv.slice(2).length ? process.argv.slice(2) : ['390x
 
 // screens that must be readable without scrolling (the others are lists or forms and are scrollable by nature)
 // (a key ending in "-held" is the same screen with every hold-to-see button held: the role card and the open role strip)
-const MUST_FIT = ['role-impostor', 'role-impostor-held', 'role-impostor-longest-held', 'role-loyal', 'role-loyal-held', 'countdown-asker', 'countdown-other', 'countdown-other-longest', 'reveal-asker', 'reveal-host-asker', 'reveal-wait', 'discussion-impostor', 'discussion-impostor-held', 'discussion-loyal', 'discussion-loyal-held', 'discussion-host',
+const MUST_FIT = [
+  // the start screen: the logo, the two lines under it, and the way into the game
+  'home',
+  'role-impostor', 'role-impostor-held', 'role-impostor-longest-held', 'role-loyal', 'role-loyal-held', 'countdown-asker', 'countdown-other', 'countdown-other-longest', 'reveal-asker', 'reveal-host-asker', 'reveal-wait', 'discussion-impostor', 'discussion-impostor-held', 'discussion-loyal', 'discussion-loyal-held', 'discussion-host',
   // two impostors (six players): the role card has a third part and the open strip a second line
   'role-impostor-duo-held', 'role-loyal-duo-held', 'discussion-impostor-duo-held', 'discussion-loyal-duo-held', 'reveal-duo-asker', 'reveal-duo-wait',
   // the reveal with the role strip held open (the strip is three lines tall for an impostor in a round with two)
@@ -48,6 +51,14 @@ async function show(view, qaHold = false, step = null) {
       ...payBase, // (the packages from the screen before must not stay on top of this one)
     });
   }, view, qaHold, step, PAY_BASE);
+}
+
+/** The start screen: no game and no seat, as a phone shows it the first time. */
+async function showHome() {
+  await page.evaluate(() => window.__disputt.setStore({ view: null }));
+  await page.evaluate((base) => {
+    window.__disputt.setStore({ conn: 'open', everOpened: true, view: null, session: null, seats: null, joining: null, creating: false, replaced: false, notice: null, sheet: null, editing: false, step: null, stuck: 0, toast: null, qaHold: false, ...base });
+  }, PAY_BASE);
 }
 
 /** A payment screen: a patch for the store, on top of a game view where there is one. */
@@ -133,7 +144,8 @@ for (const [w, h] of viewports) {
   const rows = [];
   for (const key of [...MUST_FIT, ...NICE_TO_FIT]) {
     const held = key.endsWith('-held');
-    if (key.startsWith('pay-')) await showPay(pay[key]);
+    if (key === 'home') await showHome();
+    else if (key.startsWith('pay-')) await showPay(pay[key]);
     else await show(fixtures[held ? key.slice(0, -'-held'.length) : key], held, key === 'setup-points' ? 2 : null);
     await sleep(key.startsWith('role') ? 1300 : 900); // let the entrance animations settle
     const m = key.startsWith('pay-') ? await measurePay() : await measure();

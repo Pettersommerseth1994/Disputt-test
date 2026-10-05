@@ -1,6 +1,6 @@
 # Disputt
 
-> **Diskuter og vinn.**
+> **Diskuter, manipuler og vinn.**
 
 Disputt er et sosialt bløff- og diskusjonsspill for **3–10 spillere**. Alle spiller på sin egen telefon, samlet i samme rom. Én av dere er imposter (to hvis dere er seks eller flere) og vet svaret på spørsmålet. De andre må finne ut hva som er riktig, uten å bli lurt.
 

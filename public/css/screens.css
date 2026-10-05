@@ -332,6 +332,7 @@
 }
 @media (max-height: 580px) {
   .discussion__hint { display: none; } /* "who has the question" already says it; the sentence under it is the first thing to go */
+  .home__tagline { font-size: clamp(1.9rem, 8.6vw, 2.4rem); } /* three lines tall: a little smaller, so the line under it stays clear of the button bar */
 }
 /* The packages on a short screen: the three cards and the buttons are the screen. The sentence under the title goes first, then air. */
 @media (max-height: 650px) {

@@ -98,7 +98,7 @@ export async function payAfterFreeRounds(t, { host, others, server, holdMs = 0 }
       // (a phone that gave up has been sent to the start screen: its page is gone, or says something else)
       const text = await bodyText(p).catch((err) => `[the page is gone: ${err.message}]`);
       assert.match(text, /Verten betaler/, `${p.name} is still waiting for the host after ${Math.round(holdMs / 1000)} s, but the screen says: ${text.slice(0, 200)}`);
-      assert.doesNotMatch(text, /trolig avsluttet|Diskuter\s+og\s+vinn/, `${p.name} has not given up`);
+      assert.doesNotMatch(text, /trolig avsluttet|Diskuter,?\s+manipuler\s+og\s+vinn/, `${p.name} has not given up`);
     }
   }
   await server.confirm(host);
