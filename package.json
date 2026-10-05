@@ -34,6 +34,7 @@
     "qa:signalling": "node tools/qa/signalling.mjs",
     "qa:hostile": "node tools/qa/hostile.mjs",
     "qa:fit": "node tools/qa/fit.mjs",
+    "qa:toast": "node tools/qa/toast.mjs",
     "qa:overlap": "node tools/qa/overlap.mjs"
   },
   "license": "UNLICENSED",
