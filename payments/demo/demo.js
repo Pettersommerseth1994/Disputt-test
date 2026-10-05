@@ -78,4 +78,25 @@ function mark(doc) {
   badge.setAttribute('aria-hidden', 'true');
   badge.textContent = 'DEMO · ingen ekte betaling';
   doc.body.append(badge);
+  previewDock(doc);
+}
+
+/**
+ * Proposals for the bar at the bottom of the screen (payments/demo/dock-preview.css), to try on a phone: ?dock=a, ?dock=b or ?dock=c,
+ * kept in this tab; ?dock=0 turns them off. Temporary: when one is chosen it moves into css/base.css and this goes.
+ */
+function previewDock(doc) {
+  let pick = new URLSearchParams(location.search).get('dock');
+  try {
+    if (pick !== null) sessionStorage.setItem('disputt:demo:dock', pick);
+    else pick = sessionStorage.getItem('disputt:demo:dock');
+  } catch {
+    /* no storage: the proposal then only lasts for this page */
+  }
+  if (!['a', 'b', 'c'].includes(pick)) return;
+  doc.documentElement.dataset.dock = pick;
+  const css = doc.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = new URL('dock-preview.css', import.meta.url).href;
+  doc.head.append(css);
 }
