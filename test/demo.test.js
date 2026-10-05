@@ -55,7 +55,7 @@ const payOnThePage = (storage, session) => {
 
 describe('the demo build', () => {
   it('carries the demo next to the game: the payment server, the pretend Stripe and the pretend payment page', () => {
-    for (const f of ['demo.js', 'state.js', 'worker.js', 'fakestripe.js', 'checkout.html', 'checkout.js', 'checkout.css', 'demo.css', 'dock-preview.css']) {
+    for (const f of ['demo.js', 'state.js', 'worker.js', 'fakestripe.js', 'checkout.html', 'checkout.js', 'checkout.css', 'demo.css']) {
       assert.ok(fs.existsSync(path.join(dir, 'demo', f)), `demo/${f} is in the build`);
     }
     const copied = fs.readFileSync(path.join(dir, 'demo', 'worker.js'), 'utf8');

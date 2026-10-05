@@ -72,22 +72,6 @@ try {
   assert.match(await page.$eval('.demo-badge', (el) => el.textContent), /DEMO/);
   log('the start screen carries the demo label, and "Allerede kunde? Logg inn"');
 
-  // ---- the proposals for the bar at the bottom: ?dock=b is kept in the tab, ?dock=0 turns it off
-  const barColour = () => page.$eval('.dock', (el) => getComputedStyle(el).backgroundColor);
-  const barNow = await barColour();
-  await page.goto(`${site.base}/?dock=b`);
-  await waitText(/Allerede kunde\?/);
-  assert.equal(await page.evaluate(() => document.documentElement.dataset.dock), 'b');
-  assert.notEqual(await barColour(), barNow, 'proposal B has a darker bar');
-  await page.goto(`${site.base}/`);
-  await waitText(/Allerede kunde\?/);
-  assert.equal(await page.evaluate(() => document.documentElement.dataset.dock), 'b', 'the proposal is kept in the tab');
-  await page.goto(`${site.base}/?dock=0`);
-  await waitText(/Allerede kunde\?/);
-  assert.equal(await page.evaluate(() => document.documentElement.dataset.dock), undefined);
-  assert.equal(await barColour(), barNow, 'and ?dock=0 puts the bar in use back');
-  log('?dock=b shows proposal B for the bar at the bottom, the tab keeps it, and ?dock=0 turns it off');
-
   // ---- a code that does not exist
   await click('Logg inn');
   await waitText(/Skriv inn koden du fikk da du betalte/);
