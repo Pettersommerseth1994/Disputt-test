@@ -113,7 +113,7 @@ export function Paywall({ view = null }) {
     </section>
 
     <p class="small muted center paywall__fine">
-      Engangsbetaling inkl. mva, ingen abonnement. Du betaler hos Stripe, så vi får aldri se kortnummeret ditt.${terms.length > 0 && ' '}
+      Engangsbetaling inkl. mva, ingen abonnement.${terms.length > 0 && ' '}
       ${terms.map(([name, href], i) => html`${i > 0 && ' · '}<a href=${href} target="_blank" rel="noopener">${name}</a>`)}
     </p>
     <p class="center"><span class="muted">Allerede kunde?</span> <${Button} variant="text" onClick=${() => setStore({ sheet: 'login' })}>Logg inn</${Button}></p>
