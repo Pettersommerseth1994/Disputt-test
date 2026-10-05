@@ -349,7 +349,7 @@ Vil du prøve betalingen og «Logg inn» før Stripe og Workeren er klare, kan t
 - **Slå av:** slett variabelen og kjør Pages på nytt. For å bruke den ekte test-Workeren i stedet, sett `DISPUTT_PAYMENTS_URL` og `DISPUTT_PAYMENTS_KEY` (del 9.1) og slett demo-variabelen først: byggingen nekter å kombinere dem.
 - **Slik prøver du:** forsiden → **Allerede kunde? Logg inn** → **Har du ikke kjøpt ennå? Se pakkene** → velg pakke → **Betal med Vipps** (eller **Apple Pay**). Du kommer til en falsk betalingsside: huk av boksen om vilkårene, trykk **Betal** (eller **Avbryt**), og du er tilbake i spillet med «Takk!» og koden. Prøv så **Min tilgang**, fjern tilgangen, og **Logg inn** med koden. I et spill kommer pakkene etter runde 2 (det trengs tre telefoner), og de andre ser «Verten betaler».
 - **Det demoen ikke viser:** Stripes ekte side, Vipps-appen og Apple Pays knapp, kvitteringene på e-post, og at koden virker på en annen telefon. «Serveren» er nettleseren, så koden virker bare der du betalte.
-- **Teknikk:** `payments/demo/` (`demo.js`, `state.js`, `checkout.html`, `checkout.js`) kopieres til `demo/` i byggingen, sammen med `payments/worker.js` og `tools/qa/fakestripe.mjs`. Siden laster demoen bare når `config.js` sier `demo: true`. `npm run qa:demo` prøver hele forløpet i en ekte nettleser, og `node tools/qa/demoflow.mjs --url=https://…` prøver en publisert demo.
+- **Teknikk:** `payments/demo/` (`demo.js`, `state.js`, `checkout.html`, `checkout.js`) kopieres til `demo/` i byggingen, sammen med `payments/worker.js` og `tools/qa/fakestripe.mjs`. Siden laster demoen bare når `config.js` sier `demo: true`. `npm run qa:demo` prøver kjøp fra forsiden og «Logg inn» i en ekte nettleser (`node tools/qa/demoflow.mjs --url=https://…` mot en publisert demo), og `npm run play:pay-demo` spiller en hel kveld med fire spillere: gratisrundene, muren, betalingen og runde 3 (`node tools/qa/play.mjs 4 3 --pay-demo --url=https://…` mot en publisert demo).
 
 ## 10. Test alt
 
@@ -461,6 +461,7 @@ npm run play:pay-slow          # det samme, med verten borte i 75 sekunder
 npm run qa:fit                 # pakkene må vises uten å rulle på 390×664 og de andre størrelsene
 npm run qa:overlap             # ingen tekst oppå annen tekst, ingenting kuttet, heller ikke på betalingsskjermene
 npm run qa:demo                # demoen (test-kopien uten Stripe) i en ekte nettleser: pakker, falsk betalingsside, «Takk!», «Logg inn»
+npm run play:pay-demo          # en hel betalt kveld med fire spillere mot demoen: muren etter runde 2, betaling, runde 3 (også mot en publisert demo: --url=…)
 npm run shots -- --docs        # nye skjermbilder til stilguiden og denne filen
 ```
 

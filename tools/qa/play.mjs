@@ -6,6 +6,8 @@
 //   --url   play against an already deployed peer-to-peer site (real PeerJS cloud, real timers), e.g. the GitHub Pages address
 //   --pay   payments switched on (with --p2p; needs a target of 3 or more): after the second round the host has to pay, through a pretend
 //           Stripe (tools/qa/payments-stack.mjs, tools/qa/payflow.mjs); --pay-slow also keeps the host away for 75 s while paying
+//   --pay-demo   the same evening against the payment demo of a test copy (payments/demo/), where the payment server and Stripe are pretended
+//           by the page itself. With --url it plays against a published test copy that runs the demo (real timers, the real signalling service).
 // Needs Google Chrome (CHROME_PATH to override). Exits non-zero on the first thing that does not behave.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -14,6 +16,7 @@ import puppeteer from 'puppeteer-core';
 import sharp from 'sharp';
 import { QUESTIONS } from '../../shared/questions.js';
 import { buyAndComeBackByTheBackButton, checkHome, payAfterFreeRounds, restoreOnNewPhone } from './payflow.mjs';
+import { demoServer, realServer } from './payserver.mjs';
 import { startPaymentsStack } from './payments-stack.mjs';
 import { FAST, startNodeSite, startP2PSite } from './sites.mjs';
 import { underTheFinger } from './underfinger.mjs';
@@ -29,21 +32,23 @@ const LIVE_URL = flags.find((f) => f.startsWith('--url='))?.slice('--url='.lengt
 const LIVE = Boolean(LIVE_URL);
 const SUBPATH = flags.includes('--subpath');
 const PAY_SLOW = flags.includes('--pay-slow');
-const PAY = flags.includes('--pay') || PAY_SLOW;
+const DEMO = flags.includes('--pay-demo');
+const PAY = flags.includes('--pay') || PAY_SLOW || DEMO;
 const FREE_ROUNDS = 2; // (the page's default)
 const P2P = LIVE || SUBPATH || flags.includes('--p2p');
 const SLOW = LIVE ? 2 : 1; // the deployed site runs on the real timers and a real network
-if (PAY) assert.ok(!LIVE && TARGET >= 3, '--pay needs a local site and a target of 3 or more, so that there is a third round to pay for');
+if (PAY) assert.ok((!LIVE || DEMO) && TARGET >= 3, '--pay needs a local site (a deployed one only with --pay-demo) and a target of 3 or more, so that there is a third round to pay for');
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const NAMES = ['Petter', 'Mari', 'Ola', 'Sofie', 'Jonas', 'Ida', 'Kari', 'Per', 'Nina', 'Lars'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log(...a);
 
-const stack = PAY ? await startPaymentsStack() : null; // the payment server with a pretend Stripe
+const stack = PAY && !DEMO ? await startPaymentsStack() : null; // the payment server with a pretend Stripe (the demo has its own, in the page)
+const server = DEMO ? demoServer() : stack && realServer(stack);
 const site = LIVE
   ? { base: LIVE_URL.replace(/\/+$/, ''), stop: async () => {} }
   : P2P
-    ? await startP2PSite({ prefix: SUBPATH ? '/Disputt/' : '', payments: stack && { url: stack.apiUrl, key: stack.publicKey, methods: 'vipps,applepay' } })
+    ? await startP2PSite({ prefix: SUBPATH ? '/Disputt/' : '', payments: stack && { url: stack.apiUrl, key: stack.publicKey, methods: 'vipps,applepay' }, paymentsDemo: DEMO })
     : await startNodeSite();
 const base = site.base;
 stack?.setSite(`${base}/`); // Stripe sends the host back to the game
@@ -546,7 +551,7 @@ try {
       await guest.page.waitForSelector('.sheet-backdrop');
       if (PAY && round === FREE_ROUNDS) {
         // the host has to pay before the third round (and the first round of the paid part starts from the thank-you sheet)
-        payment = await payAfterFreeRounds(tools, { host, others, stack, holdMs: PAY_SLOW ? 75_000 : 0 });
+        payment = await payAfterFreeRounds(tools, { host, others, server, holdMs: PAY_SLOW ? 75_000 : 0 });
       } else await clickButton(host, 'Neste runde');
       await waitText(guest, /din rolle/i);
       assert.equal(await guest.page.$('.sheet-backdrop'), null, 'sheets close when a new round starts');
@@ -563,8 +568,9 @@ try {
   if (PAY) {
     assert.ok(payment, 'the host was asked to pay after the free rounds');
     // (no more packages after that: the host has paid, and every round up to the winner started without asking again)
-    await buyAndComeBackByTheBackButton(tools, { base, stack });
-    await restoreOnNewPhone(tools, { base, code: payment.code });
+    await buyAndComeBackByTheBackButton(tools, { base, server });
+    // (a code works on the phone that paid in the demo, not on another one: tools/qa/demoflow.mjs plays "Logg inn" there)
+    if (!DEMO) await restoreOnNewPhone(tools, { base, code: payment.code });
   }
 
   // play again returns everyone to the lobby with scores reset

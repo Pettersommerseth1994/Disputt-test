@@ -105,6 +105,7 @@ npm run qa:hostile     # tilkoblinger av feil type, tilkoblinger som tier, og en
 npm run play:subpath   # hele spillet mot den bygde siden under /Disputt/, som på GitHub Pages
 npm run play:pay       # med betaling: pakkene etter runde 2, avbrutt og gjennomført betaling hos en falsk Stripe, runde 3, kjøp fra forsiden og innlogging på en ny telefon
 npm run play:pay-slow  # det samme, men verten er borte i 75 s mens han betaler: gjestene må vente på ham
+npm run play:pay-demo  # det samme mot demoen av betalingen (en test-kopi uten Stripe, docs/BETALING.md del 9.3)
 npm run shots          # skjermbilde av hver skjerm i mobilstørrelse -> tmp/shots/ (VIEWPORT=390x664 for en nettleser med verktøylinjer)
 npm run qa:fit         # får skjermene plass uten scrolling på de synlige skjermstørrelsene (390×664, 375×553 …)?
 npm run qa:overlap     # alle skjermer, også med ti spillere, de bredeste navnene og 125 % større tekst: ingen tekst oppå annen tekst eller skåret av, bunnlinjer ugjennomsiktige, bare linjer med en knapp frosset

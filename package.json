@@ -27,6 +27,7 @@
     "play:subpath": "node tools/qa/play.mjs --p2p --subpath",
     "play:pay": "node tools/qa/play.mjs 4 3 --p2p --pay",
     "qa:demo": "node tools/qa/demoflow.mjs",
+    "play:pay-demo": "node tools/qa/play.mjs 4 3 --p2p --pay-demo",
     "play:pay-slow": "node tools/qa/play.mjs 3 3 --p2p --pay-slow",
     "play:live": "node tools/qa/play.mjs --url=https://disputt.site",
     "qa:stuck": "node tools/qa/stuck.mjs",

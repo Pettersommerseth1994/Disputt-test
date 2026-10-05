@@ -1,4 +1,5 @@
-// The paid part of a game, played through the real interface against the pretend payment chain (tools/qa/payments-stack.mjs):
+// The paid part of a game, played through the real interface against the pretend payment chain (tools/qa/payments-stack.mjs) or the
+// payment demo (payments/demo/), as the `server` of tools/qa/payserver.mjs says:
 // the host presses "Neste runde" after the free rounds and gets the packages, changes their mind on Stripe's page, pays with
 // Vipps, comes back, and starts the round. Meanwhile the guests are told that the host is away and wait. Later a customer on a
 // new phone gets the access back with the code from the receipt. Used by `play.mjs --pay`.
@@ -7,8 +8,6 @@
 import assert from 'node:assert/strict';
 
 const CODE = /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
-const onStripe = (p) => p.page.waitForFunction(() => location.pathname.startsWith('/pay/'), { timeout: 20000 });
-const lastSession = (stack) => [...stack.fake.sessions.values()].at(-1);
 /** The pass this phone keeps (it sits under a key that names the payment server it came from), or null. */
 const storedPass = (p) =>
   p.page.evaluate(() => {
@@ -31,10 +30,10 @@ export async function checkHome(t, phone) {
  * The host is at the points of the last free round. Returns the code of the access that was bought.
  * `holdMs`: how long the host stays on Stripe's page (the guests have to be patient that long).
  */
-export async function payAfterFreeRounds(t, { host, others, stack, holdMs = 0 }) {
+export async function payAfterFreeRounds(t, { host, others, server, holdMs = 0 }) {
   const { clickButton, waitText, bodyText, shot, sleep, log } = t;
   const guest = others[0];
-  const before = stack.fake.sessions.size;
+  const before = await server.sessionCount(host);
 
   // "Neste runde" shows the packages to the host. The others just wait, like between any two rounds.
   await clickButton(host, 'Neste runde');
@@ -51,15 +50,15 @@ export async function payAfterFreeRounds(t, { host, others, stack, holdMs = 0 })
     assert.match(text, /Venter på at verten starter neste runde/, `${p.name} just waits`);
     assert.doesNotMatch(text, /Fortsett kvelden|Betal med/, `${p.name} is not asked to pay`);
   }
-  assert.equal(stack.fake.sessions.size, before, 'nothing is started at Stripe until the host chooses');
+  assert.equal(await server.sessionCount(host), before, 'nothing is started at Stripe until the host chooses');
   log('after the free rounds the host gets the packages, and the others only wait');
 
   // 1) "En kveld" with Apple Pay, and a change of mind on Stripe's page
   await choosePlan(host, 'evening');
   await waitText(host, /Gjelder i 12 timer fra du betaler/);
   await clickButton(host, 'Betal med Apple Pay');
-  await onStripe(host);
-  const first = lastSession(stack);
+  await server.onCheckoutPage(host);
+  const first = await server.lastSession(host);
   assert.equal(first.metadata.plan, 'evening');
   assert.equal(first.amount_total, 14900);
   assert.deepEqual(first.allowed_payment_method_types, ['card'], 'Apple Pay is part of "card" on Stripe\'s page');
@@ -82,13 +81,13 @@ export async function payAfterFreeRounds(t, { host, others, stack, holdMs = 0 })
   assert.match(await host.page.$eval('.plan.is-selected', (el) => el.innerText), /For ett år/, 'the year is the package that is chosen from the start');
   await choosePlan(host, 'lifetime');
   await clickButton(host, 'Betal med Vipps');
-  await onStripe(host);
-  const second = lastSession(stack);
+  await server.onCheckoutPage(host);
+  const second = await server.lastSession(host);
   assert.equal(second.metadata.plan, 'lifetime');
   assert.equal(second.amount_total, 49900);
   assert.deepEqual(second.allowed_payment_method_types, ['vipps']);
   // the code is on Stripe's page too, so that a customer who pays always has it
-  const shown = (await host.page.$eval('#note', (el) => el.textContent)).match(/\*\*([0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4})\*\*/)?.[1];
+  const shown = server.codeOnThePage(await host.page.$eval('#note', (el) => el.textContent));
   assert.equal(shown, second.metadata.code, 'Stripe\'s page says the code');
   await waitText(guest, /Verten betaler/, 25000);
   if (holdMs) {
@@ -102,7 +101,7 @@ export async function payAfterFreeRounds(t, { host, others, stack, holdMs = 0 })
       assert.doesNotMatch(text, /trolig avsluttet|Diskuter\s+og\s+vinn/, `${p.name} has not given up`);
     }
   }
-  await host.page.click('#pay');
+  await server.confirm(host);
   await waitText(host, /Takk!/, 30000);
   const thanks = await host.page.$eval('.sheet', (el) => el.innerText.replace(/\s+/g, ' '));
   assert.match(thanks, /Livstid/);
@@ -112,14 +111,20 @@ export async function payAfterFreeRounds(t, { host, others, stack, holdMs = 0 })
   const stored = await storedPass(host);
   assert.equal(stored.code, code);
   assert.equal(stored.token.split('.').length, 3, 'a signed pass is kept on the phone');
-  const paid = [...stack.fake.payments.values()].at(-1);
+  const paid = await server.lastPayment(host);
   assert.equal(paid.metadata.code, code, 'the code on the sheet is the one in the receipt');
   assert.equal(paid.amount, 49900);
   assert.equal(new URL(host.page.url()).search, '');
-  const sheetButtons = await host.page.$$eval('.sheet button', (els) => els.map((b) => b.innerText.trim()));
-  assert.ok(sheetButtons.includes('Start runde 3'), `the thank-you sheet offers the round the host asked for (${sheetButtons.join(' | ')})`);
+  // (the sheet can come up a moment before the host's room is back: it is asked for as soon as the answer from the payment side is in, and
+  // the room has to find its way back to the signalling service first. Then the button turns into the round the host asked for.)
+  const thanksAt = Date.now();
+  await host.page.waitForFunction(() => [...document.querySelectorAll('.sheet button')].some((b) => b.innerText.trim() === 'Start runde 3'), { timeout: 30000 }).catch(async () => {
+    const buttons = await host.page.$$eval('.sheet button', (els) => els.map((b) => b.innerText.trim())).catch(() => []);
+    throw new Error(`the thank-you sheet does not offer the round the host asked for, even after 30 s (${buttons.join(' | ')})`);
+  });
+  const roomBackAfter = Date.now() - thanksAt;
   await shot(host, '22-thanks');
-  log(`paid with Vipps: "Takk!" with the code ${code}`);
+  log(`paid with Vipps: "Takk!" with the code ${code} (the round the host asked for was offered ${roomBackAfter} ms later)`);
 
   // the guests find their way back; then the round the host asked for starts with one tap
   await host.page.waitForFunction(() => !/Venter på at .* kommer tilbake/.test(document.querySelector('.sheet')?.innerText ?? ''), { timeout: 45000 });
@@ -132,7 +137,7 @@ export async function payAfterFreeRounds(t, { host, others, stack, holdMs = 0 })
  * app (here: the payment goes through behind the page's back) and goes back to the game's tab by the back button. Nothing in the
  * address says "?pay=success", so the page has to find the payment itself from what it remembered about leaving.
  */
-export async function buyAndComeBackByTheBackButton(t, { base, stack }) {
+export async function buyAndComeBackByTheBackButton(t, { base, server }) {
   const { clickButton, waitText, bodyText, newPhone, shot, log } = t;
   const phone = await newPhone('Kjøper');
   await phone.page.goto(`${base}/`);
@@ -147,13 +152,13 @@ export async function buyAndComeBackByTheBackButton(t, { base, stack }) {
   await shot(phone, '25-paywall-browse');
   await choosePlan(phone, 'year');
   await clickButton(phone, 'Betal med Apple Pay');
-  await onStripe(phone);
-  const session = lastSession(stack);
+  await server.onCheckoutPage(phone);
+  const session = await server.lastSession(phone);
   assert.equal(session.metadata.plan, 'year');
   assert.equal(session.amount_total, 39900);
   // (the page remembered where it sent the customer, in this tab's own storage, which Stripe's page cannot see)
   // the customer pays in the app, not on this page: the redirect never happens
-  stack.fake.pay(session.id);
+  await server.payBehindTheBack(phone, session);
   await phone.page.goBack();
   await waitText(phone, /Takk!/, 30000);
   const sheet = await phone.page.$eval('.sheet', (el) => el.innerText.replace(/\s+/g, ' '));
