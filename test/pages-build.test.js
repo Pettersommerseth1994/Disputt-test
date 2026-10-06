@@ -175,6 +175,15 @@ describe('payments in the build', () => {
     assert.deepEqual(more.payments, { apiUrl: 'https://pay.example.com', publicKey: KEY, methods: ['vipps', 'applepay'], freeRounds: 3, termsUrl: 'https://example.com/vilkar', privacyUrl: 'https://example.com/personvern' });
   });
 
+  it('can be set up for Shopify: no payment methods to choose, and Stripe is what is built when nothing is said', async () => {
+    const shopify = await buildConfig({ mode: 'p2p', paymentsUrl: 'https://pay.example.com', paymentsKey: KEY, paymentsProvider: 'shopify', paymentsMethods: 'vipps' });
+    assert.deepEqual(shopify.payments, { apiUrl: 'https://pay.example.com', publicKey: KEY, provider: 'shopify', freeRounds: 2 }, 'the methods are Stripe\'s and are left out');
+    const stripe = await buildConfig({ mode: 'p2p', paymentsUrl: 'https://pay.example.com', paymentsKey: KEY, paymentsProvider: 'stripe' });
+    assert.deepEqual(stripe.payments, { apiUrl: 'https://pay.example.com', publicKey: KEY, methods: ['applepay'], freeRounds: 2 });
+    await assert.rejects(buildConfig({ mode: 'p2p', paymentsUrl: 'https://pay.example.com', paymentsKey: KEY, paymentsProvider: 'paypal' }), /provider/);
+    await assert.rejects(buildConfig({ mode: 'p2p', paymentsUrl: 'https://pay.example.com', paymentsKey: KEY, paymentsProvider: 'shopify;x' }), /provider/);
+  });
+
   it('refuse half a set-up and anything that could break out of the CSP', async () => {
     await assert.rejects(buildConfig({ mode: 'p2p', paymentsUrl: 'https://pay.example.com' }), /both/);
     await assert.rejects(buildConfig({ mode: 'p2p', paymentsKey: KEY }), /both/);
@@ -247,6 +256,7 @@ describe('the payment demo in the build', () => {
     await assert.rejects(buildConfig({ mode: 'p2p', paymentsDemo: '1', paymentsUrl: 'https://pay.example.com', paymentsKey: KEY }), /cannot be combined/);
     await assert.rejects(buildConfig({ mode: 'p2p', paymentsDemo: '1', paymentsKey: KEY }), /cannot be combined/);
     await assert.rejects(buildConfig({ mode: 'server', serverUrl: 'wss://disputt.example/ws', paymentsDemo: '1' }), /peer-to-peer/);
+    await assert.rejects(buildConfig({ mode: 'p2p', paymentsDemo: '1', paymentsProvider: 'shopify' }), /pretend Stripe/, 'the demo is a pretend Stripe: with Shopify the variable has to go');
     await assert.rejects(buildConfig({ mode: 'p2p', paymentsDemo: 'maybe' }), /payments demo/);
     await assert.rejects(buildConfig({ mode: 'p2p', paymentsDemo: '1', paymentsMethods: 'bitcoin' }), Error);
     await assert.rejects(buildConfig({ mode: 'p2p', paymentsDemo: '1', freeRounds: '0' }), Error);

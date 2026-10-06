@@ -38,7 +38,7 @@ export async function startP2PSite({ out = 'tmp/dist-p2p', prefix = '', payments
   const peerPort = await freePort();
   const peerServer = PeerServer({ port: peerPort, path: '/peerjs', allow_discovery: false });
   const dist = path.resolve(ROOT, out);
-  await build(['--out', dist, ...(prefix ? ['--base', prefix] : []), '--mode', 'p2p', '--peer-host', '127.0.0.1', '--peer-port', String(peerPort), '--peer-path', '/peerjs', '--peer-secure', '0', '--timings', JSON.stringify(FAST), ...(payments ? ['--payments-url', payments.url, '--payments-key', payments.key, '--payments-methods', payments.methods ?? 'vipps,applepay'] : []), ...(paymentsDemo ? ['--payments-demo', '--payments-methods', 'vipps,applepay'] : [])]);
+  await build(['--out', dist, ...(prefix ? ['--base', prefix] : []), '--mode', 'p2p', '--peer-host', '127.0.0.1', '--peer-port', String(peerPort), '--peer-path', '/peerjs', '--peer-secure', '0', '--timings', JSON.stringify(FAST), ...(payments ? ['--payments-url', payments.url, '--payments-key', payments.key, ...(payments.provider === 'shopify' ? ['--payments-provider', 'shopify'] : ['--payments-methods', payments.methods ?? 'vipps,applepay'])] : []), ...(paymentsDemo ? ['--payments-demo', '--payments-methods', 'vipps,applepay'] : [])]);
   const statics = createStaticHandler({ publicDir: dist, sharedDir: path.join(dist, 'shared'), sharedExtensions: ['.mjs', '.js'] });
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://x');

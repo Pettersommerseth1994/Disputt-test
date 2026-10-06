@@ -54,6 +54,7 @@ export const store = {
   passCode: null, // the restore code that goes with it
   paywall: false, // the packages are on screen (screens/pay.js)
   payBusy: false, // a payment is being checked after Stripe sent the host back
+  payWaiting: null, // Shopify: the payment this tab is waiting for while the host pays in the other tab, { code, plan, url, at } (pay/shop.js)
   replaced: false, // the same player opened the game in another tab
   info: null, // /api/info (LAN urls etc.)
 };

@@ -6,7 +6,7 @@ import puppeteer from 'puppeteer-core';
 import sharp from 'sharp';
 import { createApp } from '../../server/index.js';
 import { buildFixtures } from './fixtures.mjs';
-import { PAY_BASE, payScreens } from './payfixtures.mjs';
+import { PAY_BASE, SHOP_INFO, payScreens } from './payfixtures.mjs';
 
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const [VW, VH] = (process.env.VIEWPORT ?? '390x844').split('x').map(Number); // e.g. VIEWPORT=375x667 for an iPhone SE
@@ -57,6 +57,7 @@ async function show(view, extra = {}) {
 }
 
 await page.goto(url, { waitUntil: 'networkidle0' });
+await page.evaluate((info) => window.__disputt.setShop(info), SHOP_INFO); // (the packages of a Shopify shop have nobody to ask where the shop is)
 await page.evaluate(() => window.__disputt.setStore({ conn: 'open', everOpened: true }));
 await shot('00-home');
 await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.textContent.includes('Bli med i spill'))?.click());

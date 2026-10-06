@@ -8,6 +8,8 @@
 //           Stripe (tools/qa/payments-stack.mjs, tools/qa/payflow.mjs); --pay-slow also keeps the host away for 75 s while paying
 //   --pay-demo   the same evening against the payment demo of a test copy (payments/demo/), where the payment server and Stripe are pretended
 //           by the page itself. With --url it plays against a published test copy that runs the demo (real timers, the real signalling service).
+//   --pay-shopify   the same, with a pretend Shopify shop that opens in a new tab (tools/qa/shop-stack.mjs, tools/qa/shopflow.mjs);
+//           --pay-shopify-slow also keeps the host in the shop for 75 s
 // Needs Google Chrome (CHROME_PATH to override). Exits non-zero on the first thing that does not behave.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -18,6 +20,8 @@ import { QUESTIONS } from '../../shared/questions.js';
 import { buyAndComeBackByTheBackButton, checkHome, payAfterFreeRounds, restoreOnNewPhone } from './payflow.mjs';
 import { demoServer, realServer } from './payserver.mjs';
 import { startPaymentsStack } from './payments-stack.mjs';
+import { startShopStack } from './shop-stack.mjs';
+import { buyAndComeBackShop, payAfterFreeRoundsShop } from './shopflow.mjs';
 import { FAST, startNodeSite, startP2PSite } from './sites.mjs';
 import { underTheFinger } from './underfinger.mjs';
 
@@ -34,21 +38,24 @@ const SUBPATH = flags.includes('--subpath');
 const PAY_SLOW = flags.includes('--pay-slow');
 const DEMO = flags.includes('--pay-demo');
 const PAY = flags.includes('--pay') || PAY_SLOW || DEMO;
+const PAY_SHOP_SLOW = flags.includes('--pay-shopify-slow');
+const PAY_SHOP = flags.includes('--pay-shopify') || PAY_SHOP_SLOW;
 const FREE_ROUNDS = 2; // (the page's default)
 const P2P = LIVE || SUBPATH || flags.includes('--p2p');
 const SLOW = LIVE ? 2 : 1; // the deployed site runs on the real timers and a real network
-if (PAY) assert.ok((!LIVE || DEMO) && TARGET >= 3, '--pay needs a local site (a deployed one only with --pay-demo) and a target of 3 or more, so that there is a third round to pay for');
+if (PAY || PAY_SHOP) assert.ok((!LIVE || DEMO) && TARGET >= 3, '--pay needs a local site (a deployed one only with --pay-demo) and a target of 3 or more, so that there is a third round to pay for');
+assert.ok(!(PAY && PAY_SHOP), 'a game is paid for at Stripe or at Shopify, not both');
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const NAMES = ['Petter', 'Mari', 'Ola', 'Sofie', 'Jonas', 'Ida', 'Kari', 'Per', 'Nina', 'Lars'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log(...a);
 
-const stack = PAY && !DEMO ? await startPaymentsStack() : null; // the payment server with a pretend Stripe (the demo has its own, in the page)
-const server = DEMO ? demoServer() : stack && realServer(stack);
+const stack = PAY && !DEMO ? await startPaymentsStack() : PAY_SHOP ? await startShopStack() : null; // the payment server with a pretend Stripe (the demo has its own, in the page), or with a pretend Shopify
+const server = DEMO ? demoServer() : PAY ? realServer(stack) : null;
 const site = LIVE
   ? { base: LIVE_URL.replace(/\/+$/, ''), stop: async () => {} }
   : P2P
-    ? await startP2PSite({ prefix: SUBPATH ? '/Disputt/' : '', payments: stack && { url: stack.apiUrl, key: stack.publicKey, methods: 'vipps,applepay' }, paymentsDemo: DEMO })
+    ? await startP2PSite({ prefix: SUBPATH ? '/Disputt/' : '', payments: stack && { url: stack.apiUrl, key: stack.publicKey, ...(PAY_SHOP ? { provider: 'shopify' } : { methods: 'vipps,applepay' }) }, paymentsDemo: DEMO })
     : await startNodeSite();
 const base = site.base;
 stack?.setSite(`${base}/`); // Stripe sends the host back to the game
@@ -163,7 +170,7 @@ try {
   const host = await newPhone(NAMES[0], { wakeLock: 'denied' }); // the host's phone refuses to stay awake
   await host.page.goto(`${base}/`);
   await waitText(host, /Diskuter,?\s+manipuler\s+og\s+vinn/);
-  if (PAY) await checkHome({ waitText, bodyText }, host);
+  if (PAY || PAY_SHOP) await checkHome({ waitText, bodyText }, host);
   await shot(host, '01-home');
   await clickButton(host, 'Opprett spill');
   // the host sets the game up in three steps: who you are, how long to play, and last the invitation
@@ -549,9 +556,11 @@ try {
       const guest = others[0];
       await guest.page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.innerText.includes('Poeng')).click());
       await guest.page.waitForSelector('.sheet-backdrop');
-      if (PAY && round === FREE_ROUNDS) {
+      if ((PAY || PAY_SHOP) && round === FREE_ROUNDS) {
         // the host has to pay before the third round (and the first round of the paid part starts from the thank-you sheet)
-        payment = await payAfterFreeRounds(tools, { host, others, server, holdMs: PAY_SLOW ? 75_000 : 0 });
+        payment = PAY_SHOP
+          ? await payAfterFreeRoundsShop(tools, { host, others, stack, holdMs: PAY_SHOP_SLOW ? 75_000 : 0 })
+          : await payAfterFreeRounds(tools, { host, others, server, holdMs: PAY_SLOW ? 75_000 : 0 });
       } else await clickButton(host, 'Neste runde');
       await waitText(guest, /din rolle/i);
       assert.equal(await guest.page.$('.sheet-backdrop'), null, 'sheets close when a new round starts');
@@ -565,10 +574,11 @@ try {
   assert.match(finalText, /Sluttresultat/);
   log(`game finished after ${round} rounds: ${finalText.match(/(\S+ vant!|Delt seier!)/)?.[1]}`);
 
-  if (PAY) {
+  if (PAY || PAY_SHOP) {
     assert.ok(payment, 'the host was asked to pay after the free rounds');
     // (no more packages after that: the host has paid, and every round up to the winner started without asking again)
-    await buyAndComeBackByTheBackButton(tools, { base, server });
+    if (PAY_SHOP) await buyAndComeBackShop(tools, { base, stack });
+    else await buyAndComeBackByTheBackButton(tools, { base, server });
     // (a code works on the phone that paid in the demo, not on another one: tools/qa/demoflow.mjs plays "Logg inn" there)
     if (!DEMO) await restoreOnNewPhone(tools, { base, code: payment.code });
   }

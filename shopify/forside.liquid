@@ -1,0 +1,46 @@
+{% comment %}
+  Disputt: forsiden i butikken (shop.disputt.site). Den som kommer hit er nesten alltid en kunde som har betalt og trykket
+  «Fortsett å handle» på takkesiden, så siden sier at det er gjort og får kunden tilbake til spillet:
+  - Kom kunden fra spillet (spillet åpnet butikken i en ny fane), er det en knapp som lukker denne fanen, så spillet ligger der
+    det ble forlatt. Lar fanen seg ikke lukke, står det at kunden må bytte tilbake til fanen med spillet. Det er ingen lenke til spillet
+    her, for en lenke åpner spillet en gang til i denne fanen, med en kopi av rommet, og to sider vil da være vert for det samme spillet.
+  - Kom kunden ikke fra spillet (nettleseren åpnet ikke en ny fane, så denne fanen er spillets egen fane), er det en lenke tilbake til
+    spillet. Den åpner spillet i samme fane, og rommet står der det var.
+  Slik bruker du den (docs/SHOPIFY.md, del 6): Nettbutikk > Temaer > Tilpass > Forside, fjern alle seksjonene som står der, legg til
+  «Egendefinert Liquid» og lim inn alt under denne kommentaren. Adressen til spillet står i lenken (https://disputt.site/).
+  Siden fyller hele bredden selv, uansett hva seksjonen står på under «Bredde» (Horizon legger ellers en hvit kant på hver side), og
+  rullefeltet på en PC gir ikke et sidelengs rullefelt (html { overflow-x: clip }).
+{% endcomment %}
+<div class="disputt-back">
+  <style>
+    html { overflow-x: clip; }
+    .disputt-back { box-sizing: border-box; width: 100vw; margin-left: calc(50% - 50vw); min-height: 100vh; min-height: 100svh; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; color: #f8e6b8; background: #6a1428; font-family: Georgia, 'Times New Roman', serif; }
+    .disputt-back__card { max-width: 26rem; }
+    .disputt-back h1 { margin: 0 0 12px; font-size: 2.2rem; line-height: 1.1; }
+    .disputt-back p { margin: 0 0 14px; font-size: 1.1rem; line-height: 1.4; }
+    .disputt-back button, .disputt-back a.disputt-back__link { display: inline-block; box-sizing: border-box; width: 100%; padding: 14px 20px; border: 0; border-radius: 999px; font: inherit; font-weight: 700; font-size: 1.15rem; text-decoration: none; cursor: pointer; color: #3a2012; background: #fae025; }
+  </style>
+  <div class="disputt-back__card">
+    <h1>Takk!</h1>
+    <p>Betalingen er gjort, og tilgangen din dukker opp i spillet av seg selv.</p>
+    <div id="disputt-from-game" hidden>
+      <p><button id="disputt-close" type="button">Lukk fanen og gå tilbake til spillet</button></p>
+      <p id="disputt-stay" hidden>Fanen lot seg ikke lukke her. Bytt tilbake til fanen med spillet, så er du der.</p>
+    </div>
+    <div id="disputt-no-game" hidden>
+      <p><a class="disputt-back__link" id="disputt-open" href="https://disputt.site/">Tilbake til spillet</a></p>
+    </div>
+    <noscript><p><a class="disputt-back__link" href="https://disputt.site/">Tilbake til spillet</a></p></noscript>
+  </div>
+  <script>
+    (function () {
+      // a tab that the game opened has an opener; the game's own tab, when the browser refused to open a new one, has none
+      document.getElementById(window.opener ? 'disputt-from-game' : 'disputt-no-game').hidden = false;
+      var stay = document.getElementById('disputt-stay');
+      document.getElementById('disputt-close').addEventListener('click', function () {
+        window.close();
+        setTimeout(function () { stay.hidden = false; }, 400); // (a tab that the game did not open cannot be closed by a page)
+      });
+    })();
+  </script>
+</div>

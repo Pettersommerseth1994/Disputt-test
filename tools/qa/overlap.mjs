@@ -22,7 +22,7 @@ import puppeteer from 'puppeteer-core';
 import sharp from 'sharp';
 import { createApp } from '../../server/index.js';
 import { buildFixtures } from './fixtures.mjs';
-import { PAY_BASE, payScreens } from './payfixtures.mjs';
+import { PAY_BASE, SHOP_INFO, payScreens } from './payfixtures.mjs';
 import { underTheFinger } from './underfinger.mjs';
 
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -201,6 +201,7 @@ if (process.argv.includes('--self-test')) {
   // A checker that never complains proves nothing. Break the layout in three known ways and see that each one is reported.
   const stress = buildFixtures({ stress: true });
   await page.setViewport({ width: 390, height: 664, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await page.evaluate((info) => window.__disputt.setShop(info), SHOP_INFO); // (the packages of a Shopify shop have nobody to ask where the shop is; and the browser reloads the page when the viewport first becomes a phone's, which forgets it)
   // (measured at the top, halfway and at the bottom of the page, like the real run: the player list is below the first screenful)
   const everywhere = (pick) => async () => {
     const max = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
@@ -264,6 +265,7 @@ for (const plan of PLAN) {
   for (const size of plan.sizes) {
     const [w, h] = size.split('x').map(Number);
     await page.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    await page.evaluate((info) => window.__disputt.setShop(info), SHOP_INFO); // (the packages of a Shopify shop have nobody to ask where the shop is; and the browser reloads the page when the viewport first becomes a phone's, which forgets it)
     const problems = [];
     for (const [key, setup] of screens) {
       await setup();

@@ -11,6 +11,7 @@ import { formatCodeInput, isActive, normalizeCode } from '../pay/pass.js';
 import { requestNextRound } from '../pay/gate.js';
 import { forgetPass, restoreWithCode, startCheckout } from '../pay/payments.js';
 import { DEFAULT_PLAN, PERKS, PLANS, describeValidity, formatPrice, planById } from '../pay/plans.js';
+import { ShopDock } from './shoppay.js';
 
 const close = () => setStore({ sheet: null });
 const COUNT = ['ingen', 'én', 'to', 'tre', 'fire', 'fem'];
@@ -45,9 +46,9 @@ const Check = () => html`<svg class="perk__check" viewBox="0 0 24 24" width="20"
 
 // ------------------------------------------------------------------------------------------------ the packages
 
-function PlanCard({ plan, selected, onSelect }) {
-  return html`<label class=${cx('plan', selected && 'is-selected')}>
-    <input type="radio" name="plan" value=${plan.id} checked=${selected} onChange=${() => onSelect(plan.id)} />
+function PlanCard({ plan, selected, locked = false, onSelect }) {
+  return html`<label class=${cx('plan', selected && 'is-selected', locked && 'plan--locked')}>
+    <input type="radio" name="plan" value=${plan.id} checked=${selected} disabled=${locked} onChange=${() => onSelect(plan.id)} />
     <span class="plan__radio" aria-hidden="true"></span>
     <span class="plan__main">
       <span class="plan__name">${plan.name}</span>
@@ -65,7 +66,7 @@ function PlanCard({ plan, selected, onSelect }) {
 export function Paywall({ view = null }) {
   const s = useStore();
   const pay = s.payments;
-  const [plan, setPlan] = useState(DEFAULT_PLAN);
+  const [plan, setPlan] = useState(s.payWaiting?.plan ?? DEFAULT_PLAN); // (a payment that is waited for keeps its package chosen, also after a reload)
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState('');
   // coming back with the back button must not leave the buttons waiting for a page that never opens
@@ -101,7 +102,7 @@ export function Paywall({ view = null }) {
     ${have && html`<p class="chip chip--yellow paywall__have" role="status">Du har tilgang: ${planById(s.pass.plan)?.name} · ${describeValidity(s.pass)}</p>`}
 
     <div class="plans" role="radiogroup" aria-label="Velg pakke">
-      ${PLANS.map((p) => html`<${PlanCard} key=${p.id} plan=${p} selected=${plan === p.id} onSelect=${setPlan} />`)}
+      ${PLANS.map((p) => html`<${PlanCard} key=${p.id} plan=${p} selected=${plan === p.id} locked=${Boolean(s.payWaiting)} onSelect=${setPlan} />`)}
     </div>
     <p class="small muted center plans__detail" aria-live="polite">${chosen.detail}</p>
 
@@ -119,12 +120,14 @@ export function Paywall({ view = null }) {
     <p class="center"><span class="muted">Allerede kunde?</span> <${Button} variant="text" onClick=${() => setStore({ sheet: 'login' })}>Logg inn</${Button}></p>
 
     <div class="dock">
-      ${error && html`<p class="field__error center" role="alert">${error}</p>`}
-      ${pay.methods.map(
-        (m, i) => html`<${Button} key=${m} block variant=${i === 0 ? undefined : 'cream'} disabled=${busy !== null} onClick=${() => go(m)}>
-          ${busy === m ? 'Åpner betalingen …' : `Betal med ${label[m]}`}
-        </${Button}>`,
-      )}
+      ${pay.provider === 'shopify'
+        ? html`<${ShopDock} plan=${plan} />`
+        : html`${error && html`<p class="field__error center" role="alert">${error}</p>`}
+          ${pay.methods.map(
+            (m, i) => html`<${Button} key=${m} block variant=${i === 0 ? undefined : 'cream'} disabled=${busy !== null} onClick=${() => go(m)}>
+              ${busy === m ? 'Åpner betalingen …' : `Betal med ${label[m]}`}
+            </${Button}>`,
+          )}`}
     </div>
   </main>`;
 }
@@ -133,6 +136,7 @@ export function Paywall({ view = null }) {
 
 /** A customer with a code from a receipt gets their pass back. There are no accounts: the code is the login. */
 export function LoginSheet() {
+  const shopify = useStore().payments?.provider === 'shopify';
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -181,7 +185,7 @@ export function LoginSheet() {
         ${error && html`<span class="field__error" id="pass-code-error" role="alert">${error}</span>`}
       </div>
       <${Button} block type="submit" disabled=${!valid || busy}>${busy ? 'Sjekker …' : 'Hent tilgangen'}</${Button}>
-      <p class="small muted">Koden gjelder uansett om du betalte med Vipps eller Apple Pay. Du fikk den da du betalte («Takk!»-siden), og den står under Vertsvalg › Min tilgang på telefonen du betalte med.</p>
+      <p class="small muted">${shopify ? 'Koden står i e-posten du fikk fra butikken da du betalte, og under Vertsvalg › Min tilgang på telefonen du betalte med.' : 'Koden gjelder uansett om du betalte med Vipps eller Apple Pay. Du fikk den da du betalte («Takk!»-siden), og den står under Vertsvalg › Min tilgang på telefonen du betalte med.'}</p>
       <p class="center"><${Button} variant="text" onClick=${() => setStore({ sheet: null, paywall: true })}>Har du ikke kjøpt ennå? Se pakkene</${Button}></p>
     </form>
   </${Sheet}>`;
@@ -213,7 +217,7 @@ export function ThanksSheet() {
     <div class="stack">
       <p class="lead">Du har tilgang${plan && html`: <strong>${plan.name}</strong>`}. ${s.pass && describeValidity(s.pass)}.</p>
       ${s.passCode && html`<${CodeCard} code=${s.passCode} />`}
-      <p class="small muted">Ta vare på koden, for eksempel med et skjermbilde. Med den får du tilgangen tilbake på en ny telefon, uten konto.</p>
+      <p class="small muted">Ta vare på koden, for eksempel med et skjermbilde. Med den får du tilgangen tilbake på en ny telefon, uten konto.${s.payments?.provider === 'shopify' ? ' Den står også i e-posten du får fra butikken.' : ''}</p>
       ${away.length > 0 && html`<p class="small center" role="status">Venter på at ${joinNames(away)} kommer tilbake …</p>`}
       <${Button} block variant="lime" onClick=${go}>${next ? `Start runde ${view.round + 1}` : 'Fortsett spillet'}</${Button}>
     </div>

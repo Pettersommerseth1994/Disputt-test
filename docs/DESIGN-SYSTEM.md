@@ -15,7 +15,7 @@ Disputt ser ut som en tegning med fargestifter på burgunder papir: flate krittf
 | `public/css/legal.css` | Leselayout for `vilkar.html` og `personvern.html`: en smal kolonne i spillets farger, med selgerkortet øverst. |
 | `public/js/hold.js` | `useHold()`: trykk og hold, slik hemmeligheter skjules (rollen vises bare mens en finger holder knappen). |
 | `public/js/ui.js` | JS-komponentene (`Avatar`, `Button`, `Timer`, `Sheet`, `Scoreboard`, `QR`, `RoleStrip`, …) som bruker klassene over. |
-| `public/js/screens/pay.js`, `public/js/pay/` | Pakkene, «Logg inn», «Takk!», «Min tilgang» og logikken bak (tilgang, kode, kall til betalingsserveren). Av som standard, se [BETALING.md](BETALING.md). |
+| `public/js/screens/pay.js`, `screens/shoppay.js`, `public/js/pay/` | Pakkene, «Logg inn», «Takk!», «Min tilgang» og logikken bak (tilgang, kode, kall til betalingsserveren; `shop.js` for Shopify). Av som standard, se [SHOPIFY.md](SHOPIFY.md) og [BETALING.md](BETALING.md). |
 | `public/design-system/` | Stilguide-siden. |
 | `shared/avatars.mjs` | Avatar-rosteret (id, navn, aksentfarge). |
 | `public/config.js`, `public/js/paths.js` | Distribusjonsinnstillinger og stedsuavhengige stier (alle URL-er er relative, så siden virker både på `/` og under `/Disputt/`). |
@@ -91,7 +91,7 @@ Verten går gjennom tre steg, ett valg per skjerm: 1 «Hvem er du?» (`Profile` 
 
 ## Pakker og betaling
 
-Betaling er av som standard ([BETALING.md](BETALING.md)). Når den er på, kommer tre ting til: pakkene, «Logg inn» og «Takk!». Skjermene ligger i `public/js/screens/pay.js`, og tallene og teksten om pakkene i `public/js/pay/plans.js`.
+Betaling er av som standard ([SHOPIFY.md](SHOPIFY.md), [BETALING.md](BETALING.md)). Når den er på, kommer tre ting til: pakkene, «Logg inn» og «Takk!». Med Shopify har pakkeskjermen én knapp og en avkrysning for samtykket (som må settes før knappen virker), og bunnlinjen sier «Venter på betalingen …» mens verten betaler i den andre fanen (`public/js/screens/shoppay.js`). Skjermene ligger i `public/js/screens/pay.js`, og tallene og teksten om pakkene i `public/js/pay/plans.js`.
 
 - **Pakkekort** (`.plans`, `.plan`) er radiokort, som svaralternativene: det valgte kortet blir gult, prisen står alltid til høyre, og merkelappen («Mest populær», «Best verdi») sitter på kortets øvre kant, så teksten inni holder seg på to korte linjer. Et kort er en `label` rundt en usynlig radioknapp, så tastatur og skjermleser virker.
 - **Pakkeskjermen** (`Paywall`) har tittel, tre kort, en linje om den valgte pakken, «Dette får du» og et bunnfelt med én knapp per betalingsmåte (den første er den store). Kortene og knappene skal vises uten å rulle på 390×664 og 375×553: under 650 px høyde forsvinner setningen under tittelen og luften mellom kortene krymper. `npm run qa:fit` sjekker det (`pay-gate`).

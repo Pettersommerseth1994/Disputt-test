@@ -4,8 +4,9 @@
 #                         running peer-to-peer (see docs/DEPLOY.md).
 #   DISPUTT_ICE_SERVERS   JSON array of WebRTC servers, e.g. a TURN server for networks that refuse direct connections.
 #   DISPUTT_PEER_HOST / DISPUTT_PEER_PORT / DISPUTT_PEER_PATH / DISPUTT_PEER_SECURE   a self-hosted PeerJS server.
-#   DISPUTT_PAYMENTS_URL + DISPUTT_PAYMENTS_KEY   switch payments on: the payment server's address and its public key (docs/BETALING.md).
-#   DISPUTT_PAYMENTS_METHODS (vipps,applepay), DISPUTT_FREE_ROUNDS (2), DISPUTT_TERMS_URL, DISPUTT_PRIVACY_URL   optional.
+#   DISPUTT_PAYMENTS_URL + DISPUTT_PAYMENTS_KEY   switch payments on: the payment server's address and its public key (docs/SHOPIFY.md, or docs/BETALING.md for Stripe).
+#   DISPUTT_PAYMENTS_PROVIDER (shopify, or stripe, the default), DISPUTT_PAYMENTS_METHODS (Stripe: vipps,applepay), DISPUTT_FREE_ROUNDS (2),
+#   DISPUTT_TERMS_URL, DISPUTT_PRIVACY_URL   optional.
 #   DISPUTT_PAYMENTS_DEMO (1)   a test copy only: payments with a pretend Stripe that lives in the page (docs/BETALING.md, "Demo uten Stripe").
 name: Pages
 
@@ -39,7 +40,7 @@ jobs:
         if: ${{ vars.DISPUTT_PAYMENTS_URL != '' }}
         run: |
           if grep -n 'KONTAKT-EPOST' public/vilkar.html public/personvern.html; then
-            echo '::error::public/vilkar.html and public/personvern.html still say KONTAKT-EPOST. Put in the address customers write to first (docs/BETALING.md, 2.3).'
+            echo '::error::public/vilkar.html and public/personvern.html still say KONTAKT-EPOST. Put in the address customers write to first (docs/SHOPIFY.md).'
             exit 1
           fi
       - name: Build the static site
@@ -54,6 +55,7 @@ jobs:
           DISPUTT_PEER_SECURE: ${{ vars.DISPUTT_PEER_SECURE }}
           DISPUTT_PAYMENTS_URL: ${{ vars.DISPUTT_PAYMENTS_URL }}
           DISPUTT_PAYMENTS_KEY: ${{ vars.DISPUTT_PAYMENTS_KEY }}
+          DISPUTT_PAYMENTS_PROVIDER: ${{ vars.DISPUTT_PAYMENTS_PROVIDER }}
           DISPUTT_PAYMENTS_METHODS: ${{ vars.DISPUTT_PAYMENTS_METHODS }}
           DISPUTT_PAYMENTS_DEMO: ${{ vars.DISPUTT_PAYMENTS_DEMO }}
           DISPUTT_FREE_ROUNDS: ${{ vars.DISPUTT_FREE_ROUNDS }}

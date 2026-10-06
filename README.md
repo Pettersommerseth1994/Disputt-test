@@ -60,7 +60,7 @@ Terminalen skriver ut to adresser. Åpne **adressen merket «På mobilen (Wi‑F
 
 ## Betaling (av som standard)
 
-Spillet er gratis. Koden kan også ta betalt, men det er **slått av** helt til to variabler settes på GitHub: tre pakker bare verten kjøper (**En kveld** 149 kr, **For ett år** 399 kr, **Livstid** 499 kr), en betalingsmur etter to gratis runder, betaling med **Vipps eller Apple Pay** hos Stripe, ingen innlogging (en kode fra kvitteringen gir tilgangen tilbake på en ny telefon). Betalingsserveren er én Cloudflare Worker ([`payments/worker.js`](payments/worker.js)) som ikke lagrer noe. **Oppsettet, steg for steg: [docs/BETALING.md](docs/BETALING.md).** En test-kopi kan også kjøre en demo av betalingen uten Stripe (`DISPUTT_PAYMENTS_DEMO`, del 9.3).
+Spillet er gratis. Koden kan også ta betalt, men det er **slått av** helt til to variabler settes på GitHub: tre pakker bare verten kjøper (**En kveld** 149 kr, **For ett år** 399 kr, **Livstid** 499 kr), en betalingsmur etter to gratis runder, betaling med **Vipps, Apple Pay eller kort** i en Shopify-butikk som åpner seg i en ny fane (eller hos Stripe), ingen innlogging (en kode fra e-posten gir tilgangen tilbake på en ny telefon). Betalingsserveren er én Cloudflare Worker: [`payments/worker-shopify.js`](payments/worker-shopify.js) (med en liten D1-database) for Shopify, og [`payments/worker.js`](payments/worker.js), som ikke lagrer noe, for Stripe. **Oppsettet, steg for steg: [docs/SHOPIFY.md](docs/SHOPIFY.md)** (Stripe: [docs/BETALING.md](docs/BETALING.md)). En test-kopi kan også kjøre en demo av betalingen uten Stripe (`DISPUTT_PAYMENTS_DEMO`, docs/BETALING.md del 9.3).
 
 ## Designsystem
 
@@ -83,7 +83,8 @@ server/    Node-serveren (HTTP + WebSocket): index.js og static.js.
 shared/    Spillmotoren (game.js = ren tilstandsmaskin, hub.js, questions.js, util.js) og avatar-rosteret.
            Kjører både i Node-serveren og, i peer-to-peer-modus, i vertens nettleser.
 public/    Klienten: Preact + htm uten byggesteg (css/, js/, js/p2p/, assets/, design-system/).
-payments/  Betalingsserveren (én Cloudflare Worker mot Stripe). Av som standard, se docs/BETALING.md.
+payments/  Betalingsserveren (én Cloudflare Worker, for Shopify eller for Stripe). Av som standard, se docs/SHOPIFY.md og docs/BETALING.md.
+shopify/   Det som limes inn i Shopify: forsiden i butikken og boksen i ordrebekreftelsen (Liquid).
 tools/     Generatorer (art, logo, fonter), byggeverktøy for GitHub Pages (pages/) og QA-verktøy (qa/).
 test/      Enhets-, server-, QR-, bygge- og ende-til-ende-tester.
 docs/      Protokoll, drift, peer-to-peer, betaling, designsystem.
@@ -106,6 +107,9 @@ npm run play:subpath   # hele spillet mot den bygde siden under /Disputt/, som p
 npm run play:pay       # med betaling: pakkene etter runde 2, avbrutt og gjennomført betaling hos en falsk Stripe, runde 3, kjøp fra forsiden og innlogging på en ny telefon
 npm run play:pay-slow  # det samme, men verten er borte i 75 s mens han betaler: gjestene må vente på ham
 npm run play:pay-demo  # det samme mot demoen av betalingen (en test-kopi uten Stripe, docs/BETALING.md del 9.3)
+npm run play:pay-shopify  # med betaling i en falsk Shopify-butikk som åpner seg i en ny fane: lukket og åpnet igjen, avbrutt, sent varsel, gjennomført, kjøp fra forsiden og innlogging på en ny telefon
+npm run play:pay-shopify-slow  # det samme, men verten er borte i 75 s
+npm run qa:shop-live -- --url=https://pettersommerseth1994.github.io/Disputt-test  # en utlagt kopi mot den ekte butikken, til og med kassen og ikke et skritt lenger: ingenting kjøpes
 npm run shots          # skjermbilde av hver skjerm i mobilstørrelse -> tmp/shots/ (VIEWPORT=390x664 for en nettleser med verktøylinjer)
 npm run qa:fit         # får skjermene plass uten scrolling på de synlige skjermstørrelsene (390×664, 375×553 …)?
 npm run qa:toast       # toastene («Koden er kopiert») står hele øverst på skjermen, midt på bredden, glir ned ovenfra og slipper gjennom trykk, på alle skjermstørrelser (med egen selvtest)

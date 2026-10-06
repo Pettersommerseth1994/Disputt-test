@@ -7,7 +7,7 @@ import puppeteer from 'puppeteer-core';
 import { createApp } from '../../server/index.js';
 import { QUESTIONS } from '../../shared/questions.js';
 import { buildFixtures } from './fixtures.mjs';
-import { PAY_BASE, payScreens } from './payfixtures.mjs';
+import { PAY_BASE, SHOP_INFO, payScreens } from './payfixtures.mjs';
 
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -24,7 +24,7 @@ const MUST_FIT = [
   // the reveal with the role strip held open (the strip is three lines tall for an impostor in a round with two)
   'reveal-wait-held', 'reveal-asker-held', 'reveal-duo-wait-held', 'reveal-duo-asker-held',
   // the packages the host meets after the free rounds: the three cards, what the chosen one means, and the buttons to pay with
-  'pay-gate', 'pay-gate-applepay-only'];
+  'pay-gate', 'pay-gate-applepay-only', 'pay-gate-shop'];
 // ... and these should at least keep their main action and the text above it in view
 const NICE_TO_FIT = ['question-host', 'question-asker-selected', 'question-asker-selected-held', 'question-asker-longest', 'question-asker-widest-option', 'summary-right-guest', 'summary-wrong-guest', 'lobby-guest-3',
   // the host's second step: the number, what it comes to, and Neste
@@ -141,6 +141,7 @@ const pay = Object.fromEntries(payScreens(fixtures));
 let failures = 0;
 for (const [w, h] of viewports) {
   await page.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await page.evaluate((info) => window.__disputt.setShop(info), SHOP_INFO); // (the packages of a Shopify shop have nobody to ask where the shop is; and the browser reloads the page when the viewport first becomes a phone's, which forgets it)
   const rows = [];
   for (const key of [...MUST_FIT, ...NICE_TO_FIT]) {
     const held = key.endsWith('-held');

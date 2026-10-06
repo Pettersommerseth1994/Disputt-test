@@ -25,6 +25,7 @@ export function paymentSettings(cfg = config.payments, secure = globalThis.crypt
   const methods = [...new Set((cfg.methods ?? []).filter((m) => METHODS.includes(m)))];
   return {
     enabled: true,
+    provider: cfg.provider === 'shopify' ? 'shopify' : 'stripe', // who takes the money: Stripe (payments/worker.js) or a Shopify shop (worker-shopify.js, pay/shop.js)
     apiUrl: String(cfg.apiUrl).replace(/\/+$/, ''),
     publicKey: String(cfg.publicKey),
     methods: methods.length ? methods : ['applepay'],

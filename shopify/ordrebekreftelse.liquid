@@ -1,0 +1,25 @@
+{% comment %}
+  Disputt: boksen i ordrebekreftelsen til kunden. Den viser koden som spillet laget (lagt på ordren som «kode») og bekrefter at kunden
+  ba om å få tilgangen med en gang og forstår at angreretten da bortfaller (angrerettloven § 22), når ordren har samtykket fra spillet
+  (lagt på ordren som «samtykke»). Slik bruker du den (docs/SHOPIFY.md, del 7): Innstillinger > Varsler > Ordrebekreftelse > Rediger kode,
+  og lim inn alt under denne kommentaren rett etter teksten som takker for bestillingen. Er det en ordre uten kode (en som ikke kom fra
+  spillet), står det en linje om å ta kontakt.
+{% endcomment %}
+{% if attributes.kode %}
+<table width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0; border: 2px solid #3a2012; border-radius: 12px; background: #f8e6b8; color: #3a2012;">
+  <tr>
+    <td style="padding: 20px; font-family: Georgia, 'Times New Roman', serif; font-size: 16px; line-height: 1.5;">
+      <h3 style="margin: 0 0 8px; font-size: 20px;">Tilgangen din til Disputt</h3>
+      <p style="margin: 0 0 4px;">Koden din er</p>
+      <p style="margin: 0 0 14px; font-size: 26px; font-weight: bold; letter-spacing: 3px;">{{ attributes.kode | escape }}</p>
+      <p style="margin: 0 0 12px;">Tilgangen er klar i spillet allerede. Skal du bruke den på en annen telefon: åpne Disputt, trykk «Allerede kunde? Logg inn» og skriv inn koden. Ta vare på denne e-posten.</p>
+      <p style="margin: 0 0 12px;">Hvor lenge den varer står i navnet på pakken: «En kveld» gjelder i 12 timer fra betalingen, «For ett år» i 12 måneder (og fornyes ikke av seg selv), og «Livstid» så lenge Disputt finnes.</p>
+      {% if attributes.samtykke %}
+      <p style="margin: 0;"><strong>Angrerett:</strong> Du ba om at tilgangen skulle leveres med en gang da du betalte, og du forsto at angreretten da bortfaller (angrerettloven § 22). Vilkårene står på https://disputt.site/vilkar.html.</p>
+      {% endif %}
+    </td>
+  </tr>
+</table>
+{% else %}
+<p style="margin: 24px 0; font-family: Georgia, 'Times New Roman', serif; font-size: 16px;">Har du betalt uten å få en kode i spillet? Svar på denne e-posten, eller skriv til kontakt@disputt.site med ordrenummeret, så hjelper vi deg.</p>
+{% endif %}

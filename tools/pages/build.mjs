@@ -5,12 +5,14 @@
 //                              [--peer-host h] [--peer-port 443] [--peer-path /peerjs] [--peer-secure 1]
 //                              [--ice-servers '<json array>'] [--timings '<json object>'] [--no-csp]
 //                              [--payments-url https://pay.example.workers.dev --payments-key <base64> [--payments-methods vipps,applepay]
+//                               [--payments-provider stripe|shopify]
 //                               [--free-rounds 2] [--terms-url https://…] [--privacy-url https://…]]
 //                              [--payments-demo [--payments-methods vipps,applepay] [--free-rounds 2]]   (no payment server: see below)
 //
 // The same settings can come from the environment (handy in CI): DISPUTT_MODE, DISPUTT_SERVER_URL, DISPUTT_PEER_HOST,
 // DISPUTT_PEER_PORT, DISPUTT_PEER_PATH, DISPUTT_PEER_SECURE, DISPUTT_ICE_SERVERS, and for payments (docs/BETALING.md)
-// DISPUTT_PAYMENTS_URL, DISPUTT_PAYMENTS_KEY, DISPUTT_PAYMENTS_METHODS, DISPUTT_FREE_ROUNDS, DISPUTT_TERMS_URL, DISPUTT_PRIVACY_URL.
+// DISPUTT_PAYMENTS_URL, DISPUTT_PAYMENTS_KEY, DISPUTT_PAYMENTS_PROVIDER (stripe, or shopify: docs/SHOPIFY.md), DISPUTT_PAYMENTS_METHODS (Stripe only),
+// DISPUTT_FREE_ROUNDS, DISPUTT_TERMS_URL, DISPUTT_PRIVACY_URL.
 // Payments are off unless both the URL and the key are given.
 // DISPUTT_PAYMENTS_DEMO (1) is the other way to switch them on, for a test copy and never for the real site: the page then has a pretend
 // payment server and a pretend Stripe of its own (payments/demo/), so that payments and "Logg inn" can be tried without a Stripe account.
@@ -45,6 +47,7 @@ function options(argv, env) {
     timings: pick('timings', 'DISPUTT_TIMINGS'),
     paymentsUrl: pick('payments-url', 'DISPUTT_PAYMENTS_URL'),
     paymentsKey: pick('payments-key', 'DISPUTT_PAYMENTS_KEY'),
+    paymentsProvider: pick('payments-provider', 'DISPUTT_PAYMENTS_PROVIDER'),
     paymentsMethods: pick('payments-methods', 'DISPUTT_PAYMENTS_METHODS'),
     paymentsDemo: pick('payments-demo', 'DISPUTT_PAYMENTS_DEMO'),
     freeRounds: pick('free-rounds', 'DISPUTT_FREE_ROUNDS'),
@@ -105,6 +108,7 @@ export async function buildConfig(opts) {
   };
   check('payments URL (--payments-url / DISPUTT_PAYMENTS_URL)', opts.paymentsUrl, (v) => httpsUrl(v));
   check('payments key (--payments-key / DISPUTT_PAYMENTS_KEY)', opts.paymentsKey, (v) => /^[A-Za-z0-9+/]{80,200}={0,2}$/.test(v));
+  check('payments provider (--payments-provider / DISPUTT_PAYMENTS_PROVIDER: stripe or shopify)', opts.paymentsProvider, (v) => v === 'stripe' || v === 'shopify');
   check('payment methods (--payments-methods / DISPUTT_PAYMENTS_METHODS)', opts.paymentsMethods, (v) => /^(vipps|applepay)(,(vipps|applepay))*$/.test(v));
   check('free rounds (--free-rounds / DISPUTT_FREE_ROUNDS, 1 to 99: the first round is always free)', opts.freeRounds, (v) => /^[1-9]\d?$/.test(v));
   check('terms URL (--terms-url / DISPUTT_TERMS_URL)', opts.termsUrl, (v) => httpsUrl(v, { path: true }) && v.startsWith('https:'));
@@ -112,6 +116,7 @@ export async function buildConfig(opts) {
   check('payments demo (--payments-demo / DISPUTT_PAYMENTS_DEMO)', opts.paymentsDemo, (v) => /^(true|1|yes|on|false|0|no|off)$/i.test(v));
   const demo = demoOn(opts.paymentsDemo);
   if (demo && (opts.paymentsUrl || opts.paymentsKey)) throw new Error('The payments demo has a payment server of its own: it cannot be combined with --payments-url and --payments-key');
+  if (demo && opts.paymentsProvider === 'shopify') throw new Error('The payments demo is a pretend Stripe: it cannot be combined with --payments-provider shopify (remove DISPUTT_PAYMENTS_DEMO to use the real Shopify shop)');
   if (Boolean(opts.paymentsUrl) !== Boolean(opts.paymentsKey)) throw new Error('Payments need both --payments-url and --payments-key (or neither)');
   const defaults = (await import(pathToFileURL(path.join(ROOT, 'public', 'config.js')).href)).default;
   const config = { ...defaults, mode: opts.mode === 'server' ? 'server' : 'p2p', serverUrl: opts.serverUrl || null, peer: { ...defaults.peer } };
@@ -130,16 +135,17 @@ export async function buildConfig(opts) {
   }
   if (opts.timings) config.timings = JSON.parse(opts.timings);
   if ((opts.paymentsUrl && opts.paymentsKey) || demo) {
+    const shopify = opts.paymentsProvider === 'shopify'; // (the customer chooses Vipps, Apple Pay or card in the shop, so there are no methods to set)
     config.payments = {
       // (a demo has no server and no key to give: the page makes its own, see payments/demo/demo.js)
       ...(demo ? { demo: true } : { apiUrl: new URL(opts.paymentsUrl).origin, publicKey: opts.paymentsKey }),
-      methods: opts.paymentsMethods ? [...new Set(opts.paymentsMethods.split(','))] : ['applepay'],
+      ...(shopify ? { provider: 'shopify' } : { methods: opts.paymentsMethods ? [...new Set(opts.paymentsMethods.split(','))] : ['applepay'] }),
       freeRounds: opts.freeRounds === undefined ? 2 : Number(opts.freeRounds),
       ...(opts.termsUrl ? { termsUrl: opts.termsUrl } : {}),
       ...(opts.privacyUrl ? { privacyUrl: opts.privacyUrl } : {}),
     };
   }
-  // The host goes to Stripe and comes back, with the room kept in the tab and the guests told to wait: that is how the page hosts a game.
+  // The host goes off to pay (to Stripe in this tab, or to the Shopify shop in a new one) and the guests are told to wait: that is how the page hosts a game.
   // A Disputt server gives a host that leaves only a few minutes before somebody else takes over, so the two do not go together.
   if (config.payments && config.mode === 'server') throw new Error('Payments work with the peer-to-peer build (GitHub Pages), not with DISPUTT_SERVER_URL');
   // A remote server only makes sense in server mode; without one, a "server" build would have nobody to talk to.

@@ -24,6 +24,7 @@ Koden ligger i [`public/js/p2p/`](../public/js/p2p) (`host.js`, `guest.js`, `ada
 | Verten laster siden på nytt, eller nettleseren kaster fanen | Rommet gjenopprettes fra `sessionStorage`, samme kode. Gjestene kobler til igjen av seg selv og er tilbake i samme runde. |
 | Verten bytter til en annen app en stund (iOS fryser siden) | Spillet står stille til verten kommer tilbake. Skjermen holdes våken mens siden er åpen (Wake Lock, krever HTTPS, som Pages har). |
 | Verten lukker fanen for godt | Spillet er over. Gjestene prøver å koble til igjen i ca. ett minutt og får så beskjed om at verten er borte. |
+| Verten går til betaling i Shopify-butikken (betalingen er slått på, [SHOPIFY.md](SHOPIFY.md)) | Butikken åpner seg i en **ny fane**, og spillet står åpent i fanen bak: forbindelsen består, og siden spør selv om betalingen er gjennomført. `away` sendes likevel først, hvis nettleseren skulle sove fanen. En nettleser som ikke åpner nye faner sender den fanen verten står i til butikken, som nedenfor. |
 | Verten går til betaling hos Stripe (betalingen er slått på, [BETALING.md](BETALING.md)) | Før siden forlates sender verten `away` til gjestene. De viser «Verten betaler – spillet fortsetter straks» og venter i opptil ti minutter (Vipps må godkjennes i appen innen fem minutter). Rommet ligger i `sessionStorage` og kommer tilbake når Stripe sender verten hjem. |
 | En gjest mister forbindelsen eller laster siden på nytt | Kommer tilbake automatisk (`resume`), akkurat som med server. |
 | En gjest mister nettleserdataene sine | Hen åpner lenken igjen, velger seg selv fra «Spillet har startet» og tar over plassen. |
@@ -52,7 +53,7 @@ Siden bygges av [`tools/pages/build.mjs`](../tools/pages/build.mjs), som skriver
 | `DISPUTT_ICE_SERVERS` | JSON-liste med WebRTC-servere, f.eks. TURN: `[{"urls":"stun:stun.l.google.com:19302"},{"urls":"turn:turn.example.com:443?transport=tcp","username":"…","credential":"…"}]`. Erstatter standardlisten, så ta med STUN-serverne også. |
 | `DISPUTT_PEER_HOST`, `DISPUTT_PEER_PORT`, `DISPUTT_PEER_PATH`, `DISPUTT_PEER_SECURE` | Egen [PeerJS-megler](https://github.com/peers/peerjs-server) i stedet for `0.peerjs.com`. |
 
-| `DISPUTT_PAYMENTS_URL`, `DISPUTT_PAYMENTS_KEY` (+ `DISPUTT_PAYMENTS_METHODS`, `DISPUTT_FREE_ROUNDS`, `DISPUTT_TERMS_URL`, `DISPUTT_PRIVACY_URL`) | Slår betaling på: adressen til betalingsserveren og den offentlige nøkkelen som sjekker tilgangen. Uten dem er spillet gratis og ingenting om betaling vises. Se [BETALING.md](BETALING.md). |
+| `DISPUTT_PAYMENTS_URL`, `DISPUTT_PAYMENTS_KEY` (+ `DISPUTT_PAYMENTS_PROVIDER`, `DISPUTT_PAYMENTS_METHODS`, `DISPUTT_FREE_ROUNDS`, `DISPUTT_TERMS_URL`, `DISPUTT_PRIVACY_URL`) | Slår betaling på: adressen til betalingsserveren og den offentlige nøkkelen som sjekker tilgangen. `DISPUTT_PAYMENTS_PROVIDER` = `shopify` for en Shopify-butikk (ellers Stripe). Uten dem er spillet gratis og ingenting om betaling vises. Se [SHOPIFY.md](SHOPIFY.md) og [BETALING.md](BETALING.md). |
 
 Etter å ha satt en variabel: Actions → **Pages** → *Run workflow* (eller push en endring).
 

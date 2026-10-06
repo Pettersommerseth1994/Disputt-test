@@ -13,9 +13,12 @@ export const PAY = {
   privacyUrl: 'https://example.com/personvern',
 };
 export const CODE = 'K7M2-9QXD-4TRB';
+/** The same, with a Shopify shop: no methods to choose between (the customer chooses in the shop), and the shop that the page knows about. */
+export const PAY_SHOP = { enabled: true, provider: 'shopify', apiUrl: 'http://127.0.0.1:1', publicKey: 'qa', methods: ['applepay'], freeRounds: 2, termsUrl: PAY.termsUrl, privacyUrl: PAY.privacyUrl };
+export const SHOP_INFO = { shop: 'https://shop.example.test', variants: { evening: '44000000000001', year: '44000000000002', lifetime: '44000000000003' } };
 
 /** What the payment fields of the store go back to between two screens. */
-export const PAY_BASE = { payments: null, pass: null, passCode: null, paywall: false, payBusy: false, hostAwayUntil: 0 };
+export const PAY_BASE = { payments: null, pass: null, passCode: null, paywall: false, payBusy: false, payWaiting: null, hostAwayUntil: 0 };
 
 const DAY = 86_400_000;
 /** A pass as the page keeps it after checking it (pay/pass.js). */
@@ -49,5 +52,11 @@ export function payScreens(fixtures = buildFixtures()) {
     // a guest whose host has gone to pay
     ['pay-guest-host-away', { payments: PAY, view: guest, conn: 'closed', hostAwayUntil: Date.now() + 10 * 60_000 }],
     ['pay-checking', { payments: PAY, view: host, payBusy: true }],
+    // the same with a Shopify shop: one button and a box to tick, the host in the shop's tab, and the sheets that say where the code is
+    ['pay-gate-shop', { payments: PAY_SHOP, view: host, paywall: true }],
+    ['pay-browse-shop', { payments: PAY_SHOP, paywall: true }],
+    ['pay-waiting-shop', { payments: PAY_SHOP, view: host, paywall: true, payWaiting: { code: CODE, plan: 'year', url: 'https://shop.example.test/cart/44000000000002:1', at: Date.now() } }],
+    ['pay-login-shop', { payments: PAY_SHOP, sheet: 'login' }],
+    ['pay-thanks-shop', { payments: PAY_SHOP, view: host, sheet: 'thanks', pass: passOf('year'), passCode: CODE }],
   ];
 }
